@@ -8,13 +8,19 @@
     "dev": "turbo run dev",
     "lint": "turbo run lint",
     "test": "turbo run test",
-    "typecheck": "turbo run typecheck"
+    "typecheck": "turbo run typecheck",
+    "cli": "tsx scripts/slots-cli.ts",
+    "slots-cli": "tsx scripts/slots-cli.ts",
+    "update-strips": "pnpm --filter @lucky-slots/engine update-strips"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@types/prompts": "^2.4.9",
     "eslint": "^10.2.1",
     "eslint-config-prettier": "^10.1.8",
     "globals": "^17.5.0",
+    "prompts": "^2.4.2",
+    "tsx": "^4.21.0",
     "turbo": "^2.0.0",
     "typescript": "^5.4.0",
     "typescript-eslint": "^8.59.1"

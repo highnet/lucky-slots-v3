@@ -1,19 +1,20 @@
 <template>
-  <div class="flex flex-col gap-2">
+  <div class="flex flex-col gap-1 sm:gap-1.5">
     <div
       v-for="(cell, rowIdx) in displayCells"
       :key="rowIdx"
-      class="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center text-3xl sm:text-4xl rounded-xl border-2 transition-all duration-300 overflow-hidden relative"
+      class="flex items-center justify-center rounded-md sm:rounded-lg border-2 transition-all duration-300 overflow-hidden relative aspect-square"
       :class="cell.containerClass"
+      :style="cellStyle"
     >
-      <!-- Spinning blur overlay -->
       <div
         v-if="isSpinning"
         class="absolute inset-0 bg-slate-600/30 animate-pulse"
       />
       <span
-        class="inline-block transition-transform duration-200 z-10"
+        class="inline-block transition-transform duration-200 z-10 leading-none select-none"
         :class="{ 'animate-reel-bounce': isSpinning }"
+        :style="emojiStyle"
       >
         {{ cell.emoji }}
       </span>
@@ -23,21 +24,14 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-
-const GRAPHQL_EMOJIS: Record<string, string> = {
-  TEN: '🔟',
-  JACK: '👦',
-  QUEEN: '👸',
-  KING: '👑',
-  ACE: '🅰️',
-  WILD: '🃏',
-  BONUS: '🎁',
-};
+import { GRAPHQL_EMOJIS } from '@lucky-slots/engine';
 
 const props = defineProps<{
-  symbols: string[]; // 4 symbols for this reel column
+  symbols: string[];
   isSpinning: boolean;
-  isWinner: boolean[]; // 4 booleans for each row
+  isWinner: boolean[];
+  gridCols: number;
+  gridRows: number;
 }>();
 
 const displayCells = computed(() => {
@@ -54,6 +48,26 @@ const displayCells = computed(() => {
     return { emoji, containerClass };
   });
 });
+
+// Compute cell size based on grid density.
+// More cells = smaller cells. We use CSS clamp for fluid scaling.
+const cellSize = computed(() => {
+  const density = props.gridCols * props.gridRows;
+  if (density <= 9) return 'clamp(3rem, 12vw, 5.5rem)';
+  if (density <= 16) return 'clamp(2.5rem, 10vw, 4.5rem)';
+  if (density <= 30) return 'clamp(2rem, 8vw, 3.5rem)';
+  if (density <= 50) return 'clamp(1.5rem, 6vw, 2.5rem)';
+  return 'clamp(1.25rem, 5vw, 2rem)';
+});
+
+const cellStyle = computed(() => ({
+  width: cellSize.value,
+  height: cellSize.value,
+}));
+
+const emojiStyle = computed(() => ({
+  fontSize: `calc(${cellSize.value} * 0.55)`,
+}));
 </script>
 
 <style scoped>

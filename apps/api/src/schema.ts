@@ -1,4 +1,5 @@
 import { makeExecutableSchema } from '@graphql-tools/schema';
+import type { IResolvers } from '@graphql-tools/utils';
 
 export const typeDefs = /* GraphQL */ `
   enum Symbol {
@@ -46,11 +47,21 @@ export const typeDefs = /* GraphQL */ `
     rank: Int!
   }
 
+  type GridConfig {
+    rows: Int!
+    cols: Int!
+    minMatch: Int!
+    numSymbols: Int!
+    stripSize: Int!
+    paylineSymbols: Int!
+  }
+
   type Query {
     me: User
     mySpins(limit: Int = 20, offset: Int = 0): [SpinResult!]!
     leaderboard: [LeaderboardEntry!]!
     reelStrips: [[Symbol!]!]!
+    gridConfig: GridConfig!
   }
 
   type Mutation {
@@ -67,7 +78,7 @@ export const typeDefs = /* GraphQL */ `
   }
 `;
 
-export function createSchema(resolvers: any) {
+export function createSchema(resolvers: IResolvers) {
   return makeExecutableSchema({
     typeDefs,
     resolvers,

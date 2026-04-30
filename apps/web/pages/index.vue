@@ -1,74 +1,79 @@
 <template>
-  <div class="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center p-4">
+  <div class="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center p-3 sm:p-4">
     <!-- Auth prompt -->
-    <div v-if="!authStore.isAuthenticated" class="text-center">
-      <h1 class="text-4xl font-bold mb-4">Lucky Slots</h1>
+    <div v-if="!authStore.isAuthenticated" class="text-center px-4">
+      <h1 class="text-3xl sm:text-4xl font-bold mb-4">Lucky Slots</h1>
       <p class="text-slate-400 mb-8">Please log in to play</p>
       <NuxtLink
         to="/login"
-        class="px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold transition-colors"
+        class="px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold transition-colors inline-block"
       >
         Login / Register
       </NuxtLink>
     </div>
 
-    <div v-else class="w-full max-w-5xl flex flex-col lg:flex-row gap-6">
+    <div v-else class="w-full max-w-6xl flex flex-col lg:flex-row gap-4 sm:gap-6">
       <!-- Main game area -->
-      <div class="flex-1">
+      <div class="flex-1 min-w-0">
         <!-- Header -->
-        <div class="flex justify-between items-center mb-6">
-          <div class="bg-slate-800 px-6 py-3 rounded-xl border border-slate-700">
-            <div class="text-xs text-slate-400 uppercase tracking-wider">Balance</div>
-            <div class="text-2xl font-bold text-emerald-400">${{ displayBalance }}</div>
+        <div class="flex justify-between items-center mb-4 sm:mb-6 gap-2">
+          <div class="bg-slate-800 px-4 sm:px-6 py-2 sm:py-3 rounded-xl border border-slate-700 flex-1">
+            <div class="text-[10px] sm:text-xs text-slate-400 uppercase tracking-wider">Balance</div>
+            <div class="text-xl sm:text-2xl font-bold text-emerald-400">${{ displayBalance }}</div>
           </div>
-          <div class="bg-slate-800 px-6 py-3 rounded-xl border border-slate-700">
-            <div class="text-xs text-slate-400 uppercase tracking-wider">Bet</div>
-            <div class="text-2xl font-bold text-amber-400">${{ displayBet }}</div>
+          <div class="bg-slate-800 px-4 sm:px-6 py-2 sm:py-3 rounded-xl border border-slate-700 flex-1">
+            <div class="text-[10px] sm:text-xs text-slate-400 uppercase tracking-wider">Bet</div>
+            <div class="text-xl sm:text-2xl font-bold text-amber-400">${{ displayBet }}</div>
           </div>
         </div>
 
         <!-- Slot Grid -->
-        <div class="bg-slate-800 rounded-2xl p-6 border border-slate-700 mb-6">
-          <div class="flex justify-center gap-2 sm:gap-3">
+        <div class="bg-slate-800 rounded-2xl p-3 sm:p-6 border border-slate-700 mb-4 sm:mb-6">
+          <div
+            class="grid gap-1 sm:gap-1.5 md:gap-2 mx-auto"
+            :style="{ gridTemplateColumns: `repeat(${gridConfig.cols}, minmax(0, 1fr))`, maxWidth: 'fit-content' }"
+          >
             <Reel
-              v-for="col in 5"
+              v-for="col in gridConfig.cols"
               :key="col - 1"
               :symbols="reelSymbols(col - 1)"
               :is-spinning="reelSpinning[col - 1]"
               :is-winner="reelWinnerFlags(col - 1)"
+              :grid-cols="gridConfig.cols"
+              :grid-rows="gridConfig.rows"
             />
           </div>
         </div>
 
         <!-- Winnings display -->
-        <div class="text-center mb-6 h-12">
-          <div v-if="showingWinnings && lastResult && lastResult.winnings > 0" class="text-2xl font-bold text-emerald-400 animate-bounce">
-            You won ${{ lastResult.winnings.toFixed(2) }}! <span class="text-lg text-emerald-500/70">(x{{ lastResult.multiplier }})</span>
+        <div class="text-center mb-4 sm:mb-6 h-10 sm:h-12">
+          <div v-if="showingWinnings && lastResult && lastResult.winnings > 0" class="text-lg sm:text-2xl font-bold text-emerald-400 animate-bounce">
+            You won ${{ lastResult.winnings.toFixed(2) }}! <span class="text-sm sm:text-lg text-emerald-500/70">(x{{ lastResult.multiplier }})</span>
           </div>
-          <div v-else-if="!anyReelSpinning && lastResult && lastResult.winnings === 0" class="text-slate-400">
+          <div v-else-if="!anyReelSpinning && lastResult && lastResult.winnings === 0" class="text-slate-400 text-sm sm:text-base">
             No win this spin
           </div>
         </div>
 
         <!-- Controls -->
-        <div class="flex justify-center gap-4">
+        <div class="flex justify-center gap-2 sm:gap-4">
           <button
             @click="handleCycleBet"
             :disabled="anyReelSpinning"
-            class="px-6 py-4 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl font-semibold shadow-lg transition-all active:scale-95"
+            class="px-4 sm:px-6 py-3 sm:py-4 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl font-semibold shadow-lg transition-all active:scale-95 text-sm sm:text-base"
           >
             Change Bet
           </button>
           <button
             @click="handleSpin"
             :disabled="anyReelSpinning"
-            class="px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl font-bold text-lg shadow-lg shadow-blue-900/50 transition-all active:scale-95"
+            class="px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl font-bold text-base sm:text-lg shadow-lg shadow-blue-900/50 transition-all active:scale-95 min-w-[120px]"
           >
             {{ anyReelSpinning ? 'Spinning...' : 'SPIN' }}
           </button>
           <button
             @click="handleLogout"
-            class="px-6 py-4 bg-red-700 hover:bg-red-600 rounded-xl font-semibold shadow-lg transition-all active:scale-95"
+            class="px-4 sm:px-6 py-3 sm:py-4 bg-red-700 hover:bg-red-600 rounded-xl font-semibold shadow-lg transition-all active:scale-95 text-sm sm:text-base"
           >
             Logout
           </button>
@@ -76,7 +81,7 @@
       </div>
 
       <!-- Sidebar: Spin History -->
-      <div class="w-full lg:w-80">
+      <div class="w-full lg:w-80 shrink-0">
         <SpinHistory :entries="history" />
       </div>
     </div>
@@ -86,7 +91,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useAuthStore } from '~/stores/auth';
-import { fetchReelStrips, getReelWindow } from '~/composables/useReelStrips';
+import { fetchGridConfig, fetchReelStrips, getReelWindow } from '~/composables/useReelStrips';
+import type { GridConfig } from '~/composables/useReelStrips';
 
 const authStore = useAuthStore();
 const { me, logout } = useAuth();
@@ -98,10 +104,18 @@ const showingWinnings = ref(false);
 const lastResult = ref<any>(null);
 const history = ref<any[]>([]);
 const reelStrips = ref<string[][]>([]);
+const gridConfig = ref<GridConfig>({
+  rows: 4,
+  cols: 5,
+  minMatch: 3,
+  numSymbols: 7,
+  stripSize: 100,
+  paylineSymbols: 5,
+});
 
-// Per-reel spinning state: true = still spinning
-const reelSpinning = ref<boolean[]>([false, false, false, false, false]);
-let spinIntervals: (ReturnType<typeof setInterval> | null)[] = [null, null, null, null, null];
+const reelSpinning = ref<boolean[]>([]);
+let spinIntervals: (ReturnType<typeof setInterval> | null)[] = [];
+const reelOffsets = ref<number[]>([]);
 
 onMounted(async () => {
   try {
@@ -110,8 +124,22 @@ onMounted(async () => {
       await navigateTo('/login');
       return;
     }
+
+    // Fetch config and strips from backend in parallel
+    const [cfg, strips] = await Promise.all([
+      fetchGridConfig(),
+      fetchReelStrips(),
+      fetchHistory(50),
+    ]);
+
+    gridConfig.value = cfg;
+    reelStrips.value = strips;
     history.value = await fetchHistory(50);
-    reelStrips.value = await fetchReelStrips();
+
+    // Resize arrays to match config
+    reelSpinning.value = Array(cfg.cols).fill(false);
+    spinIntervals = Array(cfg.cols).fill(null);
+    reelOffsets.value = Array(cfg.cols).fill(0);
   } catch {
     await navigateTo('/login');
   }
@@ -125,30 +153,27 @@ const displayBet = computed(() => {
   return (authStore.user?.currentBet ?? 0.1).toFixed(2);
 });
 
-// Per-reel offsets cycling through the 100-symbol strip
-const reelOffsets = ref<number[]>([0, 0, 0, 0, 0]);
-
 function reelSymbols(col: number): string[] {
+  const rows = gridConfig.value.rows;
   if (reelSpinning.value[col]) {
-    return getReelWindow(col, reelOffsets.value[col], reelStrips.value);
+    return getReelWindow(col, reelOffsets.value[col], reelStrips.value, rows);
   }
   if (lastResult.value?.symbols) {
-    return [
-      lastResult.value.symbols[0][col],
-      lastResult.value.symbols[1][col],
-      lastResult.value.symbols[2][col],
-      lastResult.value.symbols[3][col],
-    ];
+    const result: string[] = [];
+    for (let row = 0; row < rows; row++) {
+      result.push(lastResult.value.symbols[row][col]);
+    }
+    return result;
   }
-  return getReelWindow(col, 0, reelStrips.value);
+  return getReelWindow(col, 0, reelStrips.value, rows);
 }
 
 function reelWinnerFlags(col: number): boolean[] {
-  if (!lastResult.value?.winningPaths) return [false, false, false, false];
-  const flags = [false, false, false, false];
+  const flags = Array(gridConfig.value.rows).fill(false);
+  if (!lastResult.value?.winningPaths) return flags;
   for (const wp of lastResult.value.winningPaths) {
     for (const c of wp.coordinates) {
-      if (c.col === col) {
+      if (c.col === col && c.row >= 0 && c.row < gridConfig.value.rows) {
         flags[c.row] = true;
       }
     }
@@ -158,11 +183,9 @@ function reelWinnerFlags(col: number): boolean[] {
 
 function startReelSpin(col: number) {
   reelSpinning.value[col] = true;
-  // Start at a random offset so spins don't look identical
-  reelOffsets.value[col] = Math.floor(Math.random() * 100);
-  // Advance through the strip rapidly (each tick moves down ~3-5 symbols)
+  reelOffsets.value[col] = Math.floor(Math.random() * gridConfig.value.stripSize);
   spinIntervals[col] = setInterval(() => {
-    reelOffsets.value[col] = (reelOffsets.value[col] + 3) % 100;
+    reelOffsets.value[col] = (reelOffsets.value[col] + 3) % gridConfig.value.stripSize;
   }, 40);
 }
 
@@ -179,8 +202,7 @@ async function handleSpin() {
   anyReelSpinning.value = true;
   showingWinnings.value = false;
 
-  // Start all 5 reels spinning
-  for (let col = 0; col < 5; col++) {
+  for (let col = 0; col < gridConfig.value.cols; col++) {
     startReelSpin(col);
   }
 
@@ -188,31 +210,28 @@ async function handleSpin() {
     const result = await spin();
     lastResult.value = result;
 
-    // Update auth store balance from server
     if (authStore.user && result.newBalance !== undefined) {
       authStore.user.balance = result.newBalance;
     }
 
-    // Staggered stop: left to right, 250ms apart
     const stopDelay = 250;
-    for (let col = 0; col < 5; col++) {
+    for (let col = 0; col < gridConfig.value.cols; col++) {
       await new Promise((resolve) => setTimeout(resolve, stopDelay));
       stopReelSpin(col);
     }
 
-    // Small pause after all reels stop before showing win
     await new Promise((resolve) => setTimeout(resolve, 400));
 
-    // Add to history
-    history.value.unshift({
+    history.value.push({
       id: result.id ?? Date.now().toString(),
       bet: result.bet,
       winnings: result.winnings,
       multiplier: result.multiplier,
       timestamp: result.timestamp ?? new Date().toISOString(),
+      symbols: result.symbols ?? [],
+      winningPaths: result.winningPaths ?? [],
     });
 
-    // Show winning paylines + winnings text
     if (result.winningPaths?.length > 0) {
       showingWinnings.value = true;
       setTimeout(() => {
@@ -225,7 +244,7 @@ async function handleSpin() {
       }, 600);
     }
   } catch (e: any) {
-    for (let col = 0; col < 5; col++) {
+    for (let col = 0; col < gridConfig.value.cols; col++) {
       stopReelSpin(col);
     }
     anyReelSpinning.value = false;

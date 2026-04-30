@@ -1,3 +1,5 @@
+import { GRID_CONFIG } from '../src/config';
+
 // Exact counts matching RNG thresholds (out of 100 symbols):
 // Ten=45% (450/999), Jack=10% (100/999), Queen=20% (200/999),
 // King=13% (130/999), Ace=9% (90/999), Wild=2% (20/999), Bonus=1% (9/999)
@@ -16,9 +18,6 @@ const DISTRIBUTION: StripConfig[] = [
   { symbol: 'BONUS', count: 1 },
 ];
 
-const STRIP_SIZE = 100;
-const NUM_REELS = 5;
-
 function seededRandom(seed: number): () => number {
   let s = seed;
   return () => {
@@ -27,10 +26,9 @@ function seededRandom(seed: number): () => number {
   };
 }
 
-function buildStrip(seed: number): string[] {
+function buildStrip(seed: number, size: number): string[] {
   const rng = seededRandom(seed);
 
-  // Build the base pool
   const pool: string[] = [];
   for (const item of DISTRIBUTION) {
     for (let i = 0; i < item.count; i++) {
@@ -38,13 +36,12 @@ function buildStrip(seed: number): string[] {
     }
   }
 
-  // Fisher-Yates shuffle with seed
   for (let i = pool.length - 1; i > 0; i--) {
     const j = Math.floor(rng() * (i + 1));
     [pool[i], pool[j]] = [pool[j], pool[i]];
   }
 
-  return pool;
+  return pool.slice(0, size);
 }
 
 function verifyStrip(strip: string[]): Record<string, number> {
@@ -55,10 +52,10 @@ function verifyStrip(strip: string[]): Record<string, number> {
   return counts;
 }
 
-function generateStrips(): string[][] {
+function generateStrips(reelCount: number, stripSize: number): string[][] {
   const strips: string[][] = [];
-  for (let reel = 0; reel < NUM_REELS; reel++) {
-    const strip = buildStrip(reel + 42); // Different seed per reel
+  for (let reel = 0; reel < reelCount; reel++) {
+    const strip = buildStrip(reel + 42, stripSize);
     strips.push(strip);
   }
   return strips;
@@ -66,7 +63,7 @@ function generateStrips(): string[][] {
 
 function toTypeScript(strips: string[][]): string {
   const lines: string[] = [
-    'export const REEL_STRIPS: string[][] = [',
+    "export const REEL_STRIPS: string[][] = [",
   ];
 
   for (let r = 0; r < strips.length; r++) {
@@ -89,12 +86,13 @@ function toTypeScript(strips: string[][]): string {
   return lines.join('\n');
 }
 
-// Run generator
-const strips = generateStrips();
+// Run generator using GRID_CONFIG
+const { cols, stripSize } = GRID_CONFIG;
+const strips = generateStrips(cols, stripSize);
 
 console.log('=== Reel Strip Generator ===\n');
-console.log(`Strip size: ${STRIP_SIZE}`);
-console.log(`Reels: ${NUM_REELS}\n`);
+console.log(`Strip size: ${stripSize}`);
+console.log(`Reels: ${cols}\n`);
 
 for (let r = 0; r < strips.length; r++) {
   const counts = verifyStrip(strips[r]);
@@ -104,7 +102,6 @@ for (let r = 0; r < strips.length; r++) {
 console.log('\n=== TypeScript Output ===\n');
 console.log(toTypeScript(strips));
 
-// Verify expected vs actual
 console.log('\n=== Verification ===');
 let allCorrect = true;
 for (let r = 0; r < strips.length; r++) {

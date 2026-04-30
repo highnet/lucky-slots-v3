@@ -3,3 +3,43 @@ v2
 .env
 .env.local
 .env.*.local
+
+# Build outputs
+dist
+.output
+.nuxt
+*.tsbuildinfo
+
+# Turbo cache
+.turbo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local databases
+*.sqlite
+*.sqlite3
+
+# IDE
+.idea
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+*.swp
+*.swo
+*~
+
+# Test coverage
+coverage
+
+# Temporary files
+*.tmp
+*.temp

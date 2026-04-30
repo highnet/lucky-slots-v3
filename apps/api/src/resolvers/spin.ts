@@ -3,7 +3,7 @@ import { redis } from '../datasources/redis';
 import { users, spins } from '../db/schema';
 import { eq, desc } from 'drizzle-orm';
 import { GraphQLError } from 'graphql';
-import { SpinEngine, PaylineEngine, PayoutEngine, BET_AMOUNTS, symbolsToGraphQL, REEL_STRIPS } from '@lucky-slots/engine';
+import { SpinEngine, PaylineEngine, PayoutEngine, BET_AMOUNTS, symbolsToGraphQL, REEL_STRIPS, GRID_CONFIG } from '@lucky-slots/engine';
 import { randomFillSync } from 'crypto';
 import type { Context } from '../context';
 
@@ -41,6 +41,7 @@ export const spinResolvers = {
       return results.map((s: {
         id: string;
         symbols: unknown;
+        winningPaths: unknown;
         multiplier: string;
         winnings: string;
         bet: string;
@@ -56,7 +57,7 @@ export const spinResolvers = {
                 : row
             )
           : s.symbols,
-        winningPaths: [],
+        winningPaths: Array.isArray(s.winningPaths) ? s.winningPaths : [],
         multiplier: parseFloat(s.multiplier),
         winnings: parseFloat(s.winnings),
         bet: parseFloat(s.bet),
@@ -77,6 +78,14 @@ export const spinResolvers = {
       return results;
     },
     reelStrips: () => REEL_STRIPS,
+    gridConfig: () => ({
+      rows: GRID_CONFIG.rows,
+      cols: GRID_CONFIG.cols,
+      minMatch: GRID_CONFIG.minMatch,
+      numSymbols: GRID_CONFIG.numSymbols,
+      stripSize: GRID_CONFIG.stripSize,
+      paylineSymbols: GRID_CONFIG.paylineSymbols,
+    }),
   },
   Mutation: {
     spin: async (_parent: unknown, _args: unknown, ctx: Context) => {
@@ -110,6 +119,11 @@ export const spinResolvers = {
         .values({
           userId: user.id,
           symbols: spinResult.symbols as unknown,
+          winningPaths: payout.winningPaths.map((wp) => ({
+            symbol: GRAPHQL_SYMBOL_NAMES[wp.symbol as number],
+            size: wp.size,
+            coordinates: wp.coordinates,
+          })) as unknown,
           bet: bet.toFixed(2),
           multiplier: payout.multiplier.toFixed(4),
           winnings: payout.winnings.toFixed(2),

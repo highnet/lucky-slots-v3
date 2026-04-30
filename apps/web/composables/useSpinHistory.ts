@@ -20,6 +20,12 @@ export interface SpinHistoryEntry {
   winnings: number;
   multiplier: number;
   timestamp: string;
+  symbols: string[][];
+  winningPaths: {
+    symbol: string;
+    size: number;
+    coordinates: { row: number; col: number }[];
+  }[];
 }
 
 export function useSpinHistory() {
@@ -32,15 +38,26 @@ export function useSpinHistory() {
           winnings
           multiplier
           timestamp
+          symbols
+          winningPaths {
+            symbol
+            size
+            coordinates {
+              row
+              col
+            }
+          }
         }
       }
     `);
-    return data.mySpins.map((s) => ({
+    return data.mySpins.map((s: any) => ({
       id: s.id,
       bet: s.bet,
       winnings: s.winnings,
       multiplier: s.multiplier,
       timestamp: s.timestamp,
+      symbols: Array.isArray(s.symbols) ? s.symbols : [],
+      winningPaths: Array.isArray(s.winningPaths) ? s.winningPaths : [],
     }));
   }
 

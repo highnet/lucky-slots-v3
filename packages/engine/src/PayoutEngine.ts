@@ -1,16 +1,66 @@
-import { Symbol, type Coordinate, type PayoutResult } from './types';
-import { MULTIPLIERS } from './constants';
+/**
+ * @fileoverview PayoutEngine.ts
+ *
+ * Calculates winnings by matching spin results against payline paths.
+ *
+ * Algorithm (high-level):
+ * 1. For each payline symbol (Ace → Ten), check every path against the
+ *    corresponding wild-replaced grid.
+ * 2. Group successful paths by length (3, 4, 5, …).
+ * 3. Filter "dirty" subpaths: a 4-match fully contained in a 5-match is removed.
+ *    This is done with BigInt bitmasks for O(1) containment checks.
+ * 4. Remove paths that would reuse a wild already "spent" by a higher-value match.
+ * 5. Sum multipliers from the remaining clean paths.
+ *
+ * Bitmask details:
+ * Each cell gets a bit position = row * cols + col.
+ * A path's mask = OR of all its cell bits.
+ * Containment: (superMask & subMask) === subMask  →  subPath is fully inside superPath.
+ */
+
+import { Symbol, type Coordinate, type PayoutResult, NUM_REELS } from './types';
+import { getMultiplier } from './constants';
+import { GRID_CONFIG } from './config';
 import type { PaylineEngine } from './PaylineEngine';
+
+/**
+ * Build a BigInt bitmask for a path.
+ * Each cell gets bit position = row * cols + col.
+ */
+function pathToMask(path: Coordinate[], cols: number): bigint {
+  let mask = 0n;
+  for (const c of path) {
+    mask |= 1n << BigInt(c.row * cols + c.col);
+  }
+  return mask;
+}
+
+/**
+ * Check if subPath is fully contained in superPath using bitmasks.
+ */
+function isContained(superMask: bigint, subMask: bigint): boolean {
+  return (superMask & subMask) === subMask;
+}
 
 export class PayoutEngine {
   private paylineEngine: PaylineEngine;
+  private cols: number;
 
   constructor(paylineEngine: PaylineEngine) {
     this.paylineEngine = paylineEngine;
+    this.cols = NUM_REELS;
   }
 
+  /**
+   * Calculate the total payout for a spin.
+   *
+   * @param originalSymbols   Grid with wilds intact (used to track spent wilds)
+   * @param wildReplacements  Array of grids where wilds are replaced per symbol
+   * @param bet               Current bet amount
+   * @returns Winnings, multiplier, and detailed winning paths
+   */
   calculatePayout(
-    originalSymbols: Symbol[][], // grid with wilds intact
+    originalSymbols: Symbol[][],
     wildReplacements: Symbol[][][],
     bet: number
   ): PayoutResult {
@@ -18,17 +68,20 @@ export class PayoutEngine {
     const payoutTallies: string[] = [];
     const winningPaths: { symbol: Symbol; size: number; coordinates: Coordinate[] }[] = [];
 
-    // Track which wild positions have been "spent" by higher-value matches
-    const spentWilds = new Set<string>();
+    let spentWildsMask = 0n;
+    const { paylineSymbols } = GRID_CONFIG;
 
-    // Process from highest symbol (Ace=4) down to lowest (Ten=0)
-    for (let symbolID = 4; symbolID >= 0; symbolID--) {
+    // Flat array: matches[symbolID] = list of { coordinates, mask }
+    const matches: { coordinates: Coordinate[]; mask: bigint }[][] = Array.from(
+      { length: paylineSymbols },
+      () => []
+    );
+
+    // Step 1: Find all matching paths for each symbol (highest first)
+    for (let symbolID = paylineSymbols - 1; symbolID >= 0; symbolID--) {
       const scanSymbol = symbolID as Symbol;
       const spinnedSymbols = wildReplacements[symbolID];
 
-      const matchedAnySize: Coordinate[][] = [];
-
-      // Check all paths for this symbol replacement
       for (const path of totalPaths) {
         let pathSuccess = true;
         for (const coord of path.coordinates) {
@@ -38,106 +91,97 @@ export class PayoutEngine {
           }
         }
         if (pathSuccess) {
-          matchedAnySize.push(path.coordinates);
+          matches[symbolID].push({
+            coordinates: path.coordinates,
+            mask: pathToMask(path.coordinates, this.cols),
+          });
         }
       }
+    }
 
-      // Categorize by size
-      const matchedSize5: Coordinate[][] = [];
-      const matchedSize4: Coordinate[][] = [];
-      const matchedSize3: Coordinate[][] = [];
+    // Step 2–4: Filter dirty subpaths and spent wilds, then tally
+    for (let symbolID = paylineSymbols - 1; symbolID >= 0; symbolID--) {
+      const scanSymbol = symbolID as Symbol;
+      const symbolMatches = matches[symbolID];
 
-      for (const pathCoords of matchedAnySize) {
-        if (pathCoords.length === 5) {
-          matchedSize5.push(pathCoords);
-        } else if (pathCoords.length === 4) {
-          matchedSize4.push(pathCoords);
-        } else if (pathCoords.length === 3) {
-          matchedSize3.push(pathCoords);
-        }
+      // Group by path length
+      const bySize = new Map<number, { coordinates: Coordinate[]; mask: bigint }[]>();
+      for (const m of symbolMatches) {
+        const list = bySize.get(m.coordinates.length) ?? [];
+        list.push(m);
+        bySize.set(m.coordinates.length, list);
       }
 
-      // Filter dirty subpaths (subpaths fully contained in larger paths)
-      const dirtyPaths: Coordinate[][] = [];
+      const sizes = Array.from(bySize.keys()).sort((a, b) => b - a);
 
-      for (const path5 of matchedSize5) {
-        for (const path4 of matchedSize4) {
-          if (this.numberOfSharedVertices(path5, path4) === 4) {
-            dirtyPaths.push(path4);
+      // Precompute masks per size for fast dirty-path checks
+      const sizeMasks = new Map<number, bigint[]>();
+      for (const size of sizes) {
+        sizeMasks.set(size, bySize.get(size)!.map((m) => m.mask));
+      }
+
+      // Remove dirty subpaths
+      const validPaths: { coordinates: Coordinate[]; mask: bigint }[] = [];
+      for (const size of sizes) {
+        const paths = bySize.get(size)!;
+        const dirty = new Set<number>();
+
+        for (const largerSize of sizes) {
+          if (largerSize <= size) continue;
+          const largerMasks = sizeMasks.get(largerSize)!;
+          for (let i = 0; i < paths.length; i++) {
+            if (dirty.has(i)) continue;
+            for (const lm of largerMasks) {
+              if (isContained(lm, paths[i].mask)) {
+                dirty.add(i);
+                break;
+              }
+            }
           }
         }
-        for (const path3 of matchedSize3) {
-          if (this.numberOfSharedVertices(path5, path3) === 3) {
-            dirtyPaths.push(path3);
+
+        for (let i = 0; i < paths.length; i++) {
+          if (!dirty.has(i)) {
+            validPaths.push(paths[i]);
           }
         }
       }
 
-      for (const path4 of matchedSize4) {
-        for (const path3 of matchedSize3) {
-          if (this.numberOfSharedVertices(path4, path3) === 3) {
-            dirtyPaths.push(path3);
-          }
+      // Remove paths that reuse already-spent wilds
+      const finalPaths: { coordinates: Coordinate[]; mask: bigint }[] = [];
+      for (const p of validPaths) {
+        if ((p.mask & spentWildsMask) === 0n) {
+          finalPaths.push(p);
         }
       }
 
-      for (const dirtyPath of dirtyPaths) {
-        const idx4 = matchedSize4.findIndex((p) => this.pathsEqual(p, dirtyPath));
-        if (idx4 !== -1) matchedSize4.splice(idx4, 1);
-        const idx3 = matchedSize3.findIndex((p) => this.pathsEqual(p, dirtyPath));
-        if (idx3 !== -1) matchedSize3.splice(idx3, 1);
-      }
-
-      // Filter out paths that would require reusing already-spent wilds
-      const isPathValid = (path: Coordinate[]): boolean => {
-        for (const coord of path) {
+      // Mark wilds in final paths as spent
+      for (const p of finalPaths) {
+        for (const coord of p.coordinates) {
           if (originalSymbols[coord.row][coord.col] === Symbol.Wild) {
-            if (spentWilds.has(`${coord.row},${coord.col}`)) {
-              return false;
-            }
+            spentWildsMask |= 1n << BigInt(coord.row * this.cols + coord.col);
           }
         }
-        return true;
-      };
-
-      const validSize5 = matchedSize5.filter(isPathValid);
-      const validSize4 = matchedSize4.filter(isPathValid);
-      const validSize3 = matchedSize3.filter(isPathValid);
-
-      // Mark wilds in valid paths as spent so lower symbols can't reuse them
-      const spendWilds = (paths: Coordinate[][]) => {
-        for (const path of paths) {
-          for (const coord of path) {
-            if (originalSymbols[coord.row][coord.col] === Symbol.Wild) {
-              spentWilds.add(`${coord.row},${coord.col}`);
-            }
-          }
-        }
-      };
-      spendWilds(validSize5);
-      spendWilds(validSize4);
-      spendWilds(validSize3);
-
-      // Build payout tallies and winning paths
-      for (const path of validSize5) {
-        payoutTallies.push(`${path.length} ${Symbol[scanSymbol]}`);
-        winningPaths.push({ symbol: scanSymbol, size: 5, coordinates: path });
       }
-      for (const path of validSize4) {
-        payoutTallies.push(`${path.length} ${Symbol[scanSymbol]}`);
-        winningPaths.push({ symbol: scanSymbol, size: 4, coordinates: path });
-      }
-      for (const path of validSize3) {
-        payoutTallies.push(`${path.length} ${Symbol[scanSymbol]}`);
-        winningPaths.push({ symbol: scanSymbol, size: 3, coordinates: path });
+
+      // Build tallies
+      for (const p of finalPaths) {
+        payoutTallies.push(`${p.coordinates.length} ${Symbol[scanSymbol]}`);
+        winningPaths.push({
+          symbol: scanSymbol,
+          size: p.coordinates.length,
+          coordinates: p.coordinates,
+        });
       }
     }
 
     let multiplier = 0;
     for (const tally of payoutTallies) {
-      const add = MULTIPLIERS[tally];
-      if (add !== undefined) {
-        multiplier += add;
+      const m = tally.match(/^(\d+)\s+(.+)$/);
+      if (m) {
+        const size = parseInt(m[1], 10);
+        const symName = m[2];
+        multiplier += getMultiplier(size, symName);
       }
     }
 
@@ -148,28 +192,5 @@ export class PayoutEngine {
       multiplier,
       winningPaths,
     };
-  }
-
-  private numberOfSharedVertices(path1: Coordinate[], path2: Coordinate[]): number {
-    let shared = 0;
-    for (const v1 of path1) {
-      for (const v2 of path2) {
-        if (v1.row === v2.row && v1.col === v2.col) {
-          shared++;
-          break;
-        }
-      }
-    }
-    return shared;
-  }
-
-  private pathsEqual(path1: Coordinate[], path2: Coordinate[]): boolean {
-    if (path1.length !== path2.length) return false;
-    for (let i = 0; i < path1.length; i++) {
-      if (path1[i].row !== path2[i].row || path1[i].col !== path2[i].col) {
-        return false;
-      }
-    }
-    return true;
   }
 }

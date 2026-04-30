@@ -1,29 +1,37 @@
-import { describe, it, expect } from 'vitest';
-import { getPaylinePaths, PaylineEngine } from '../src/PaylineEngine';
-import { SLOTS_MAPPING } from '../src/PaylineEngine';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { getPaylinePaths, clearPaylineCache } from '../src/PaylineEngine';
+import { GRID_CONFIG } from '../src/config';
 
 describe('PaylineEngine', () => {
-  it('has 20 slot mappings', () => {
-    expect(Object.keys(SLOTS_MAPPING)).toHaveLength(20);
+  beforeEach(() => {
+    clearPaylineCache();
   });
 
-  it('generates paths with correct coordinate structure', () => {
+  it('has correct coordinate structure for current grid', () => {
     const paths = getPaylinePaths();
     expect(paths.length).toBeGreaterThan(0);
 
     for (const path of paths) {
-      expect(path.coordinates.length).toBeGreaterThanOrEqual(3);
-      expect(path.coordinates.length).toBeLessThanOrEqual(5);
+      expect(path.coordinates.length).toBeGreaterThanOrEqual(GRID_CONFIG.minMatch);
+      expect(path.coordinates.length).toBeLessThanOrEqual(GRID_CONFIG.cols);
 
-      // Verify columns strictly increase by 1
+      // Columns strictly increase by 1
       for (let i = 1; i < path.coordinates.length; i++) {
         expect(path.coordinates[i].col).toBe(path.coordinates[i - 1].col + 1);
+      }
+
+      // Rows are within bounds
+      for (const coord of path.coordinates) {
+        expect(coord.row).toBeGreaterThanOrEqual(0);
+        expect(coord.row).toBeLessThan(GRID_CONFIG.rows);
+        expect(coord.col).toBeGreaterThanOrEqual(0);
+        expect(coord.col).toBeLessThan(GRID_CONFIG.cols);
       }
     }
   });
 
   it('has no duplicate paths', () => {
-    const paths = getPaylineEngine().getPaths();
+    const paths = getPaylinePaths();
     const seen = new Set<string>();
     for (const path of paths) {
       const key = path.coordinates.map((c) => `${c.row},${c.col}`).join('|');
@@ -37,8 +45,15 @@ describe('PaylineEngine', () => {
     const p2 = getPaylinePaths();
     expect(p1).toBe(p2); // same reference
   });
-});
 
-function getPaylineEngine() {
-  return new PaylineEngine();
-}
+  it('supports different grid sizes', () => {
+    const paths3x3 = getPaylinePaths(3, 3, 3);
+    const paths4x5 = getPaylinePaths(4, 5, 3);
+
+    expect(paths3x3.length).toBeGreaterThan(0);
+    expect(paths4x5.length).toBeGreaterThan(0);
+
+    // 4x5 should have more paths than 3x3
+    expect(paths4x5.length).toBeGreaterThan(paths3x3.length);
+  });
+});

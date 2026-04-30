@@ -14,6 +14,7 @@ export const spins = pgTable('spins', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
   symbols: jsonb('symbols').notNull(),
+  winningPaths: jsonb('winning_paths').notNull().default('[]'),
   bet: decimal('bet', { precision: 12, scale: 2 }).notNull(),
   multiplier: decimal('multiplier', { precision: 12, scale: 4 }).notNull(),
   winnings: decimal('winnings', { precision: 12, scale: 2 }).notNull(),
