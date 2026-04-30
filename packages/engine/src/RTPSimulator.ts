@@ -3,8 +3,8 @@
  *
  * Monte Carlo simulator for analyzing slot machine Return-to-Player (RTP).
  *
- * Given a grid configuration, symbol thresholds, and payout multipliers,
- * this class runs millions of simulated spins and reports:
+ * Given reel strips and payout multipliers, this class runs millions of
+ * simulated spins and reports:
  *   - Overall RTP percentage
  *   - Hit frequency
  *   - Per-symbol RTP contribution
@@ -34,7 +34,7 @@ function mulberry32(seed: number): () => number {
 
 function fastRng(seed: number): () => number {
   const rand = mulberry32(seed);
-  return () => Math.floor(rand() * 999);
+  return () => Math.floor(rand() * Number.MAX_SAFE_INTEGER);
 }
 
 export interface RTPResult {
@@ -61,10 +61,8 @@ export interface RTPInputConfig {
   cols: number;
   minMatch: number;
   paylineSymbols: number;
-  thresholds?: Record<string, number>;
   multipliers: Record<string, number>;
-  /** When provided the simulator uses strip-based spins instead of threshold RNG. */
-  reelStrips?: string[][];
+  reelStrips: string[][];
 }
 
 export class RTPSimulator {
@@ -77,8 +75,8 @@ export class RTPSimulator {
       cols: GRID_CONFIG.cols,
       minMatch: GRID_CONFIG.minMatch,
       paylineSymbols: GRID_CONFIG.paylineSymbols,
-      thresholds: { ten: 180, jack: 240, queen: 340, king: 400, ace: 450, wild: 470, bonus: 999 },
       multipliers: {},
+      reelStrips: [],
     }
   ) {
     this.paylineEngine = new PaylineEngine(config.rows, config.cols, config.minMatch);
@@ -94,9 +92,7 @@ export class RTPSimulator {
    * @returns       Complete RTP analysis
    */
   run(spins = 100_000, bet = 1.0, seed = 42): RTPResult {
-    const spinEngine = this.config.reelStrips
-      ? new SpinEngine(fastRng(seed), undefined, this.config.reelStrips)
-      : new SpinEngine(fastRng(seed), this.config.thresholds);
+    const spinEngine = new SpinEngine(fastRng(seed), this.config.reelStrips);
 
     let totalWinnings = 0;
     let totalBets = 0;

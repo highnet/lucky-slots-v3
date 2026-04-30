@@ -13,7 +13,7 @@ import { GRID_CONFIG } from './config';
  * Enumeration of all slot symbols.
  *
  * Numeric values are ordered from lowest-paying (Ten=0) to highest-paying
- * (Ace=4). Wild (5) and Bonus (6) are special symbols.
+ * (Ace=4). Wild (5) is a special symbols.
  *
  * The ordering matters for the greedy wild-matching algorithm in
  * {@link PayoutEngine}, which iterates from high to low.
@@ -25,7 +25,6 @@ export enum Symbol {
   King = 3,
   Ace = 4,
   Wild = 5,
-  Bonus = 6,
 }
 
 /**
@@ -38,7 +37,6 @@ export const SYMBOL_EMOJIS: Record<Symbol, string> = {
   [Symbol.King]: '👑',
   [Symbol.Ace]: '🅰️',
   [Symbol.Wild]: '🃏',
-  [Symbol.Bonus]: '🎁',
 };
 
 /** Re-exported from {@link GRID_CONFIG} for backward compatibility. */
@@ -108,7 +106,6 @@ export const GRAPHQL_SYMBOL_NAMES: Record<Symbol, string> = {
   [Symbol.King]: 'KING',
   [Symbol.Ace]: 'ACE',
   [Symbol.Wild]: 'WILD',
-  [Symbol.Bonus]: 'BONUS',
 };
 
 /**
@@ -123,7 +120,6 @@ export const GRAPHQL_EMOJIS: Record<string, string> = {
   KING: '👑',
   ACE: '🅰️',
   WILD: '🃏',
-  BONUS: '🎁',
 };
 
 /**

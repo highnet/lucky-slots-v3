@@ -31,13 +31,13 @@ export const GRID_CONFIG = {
   cols: 4,
   /** Minimum contiguous symbols required for a payline to count as a match. */
   minMatch: 3,
-  /** Total symbol types (Ten, Jack, Queen, King, Ace, Wild, Bonus). */
-  numSymbols: 7,
+  /** Total symbol types (Ten, Jack, Queen, King, Ace, Wild). */
+  numSymbols: 6,
   /** Size of each reel strip (must be ≥ 1). */
   stripSize: 100,
   /**
    * Number of symbols that can form payline matches.
-   * Ten through Ace = 5. Wild and Bonus are special-cased.
+   * Ten through Ace = 5. Wild is special-cased.
    */
   paylineSymbols: 5,
 } as const;

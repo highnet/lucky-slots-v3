@@ -14,7 +14,7 @@ import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
 import prompts from 'prompts';
-import { RTPSimulator, RTPBalancer } from '@lucky-slots/engine';
+import { RTPSimulator } from '@lucky-slots/engine';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ENGINE_DIR = resolve(__dirname, '../packages/engine/src');
@@ -44,19 +44,30 @@ function parseConfig(): GridConfig {
   return config;
 }
 
-function parseThresholds(): Record<string, number> {
+function parseReelStrips(): string[][] {
   const content = readFileSync(CONSTANTS_PATH, 'utf-8');
-  const match = content.match(/export const THRESHOLDS = \{([\s\S]*?)\} as const;/);
-  if (!match) return {};
-  const thresholds: Record<string, number> = {};
-  const lines = match[1].split('\n');
-  for (const line of lines) {
-    const m = line.match(/^[ \t]*(\w+):[ \t]*(\d+)/);
-    if (m) {
-      thresholds[m[1]] = parseInt(m[2], 10);
+  const match = content.match(/export const REEL_STRIPS: string\[\]\[\] = \[([\s\S]*?)\];/);
+  if (!match) return [];
+
+  const strips: string[][] = [];
+  const raw = match[1];
+  // Split by reel comments and parse each reel's array
+  const reelBlocks = raw.split(/\/\/ Reel \d+/).filter((b) => b.trim());
+
+  for (const block of reelBlocks) {
+    const strip: string[] = [];
+    const lines = block.split('\n');
+    for (const line of lines) {
+      const symbols = line.match(/'([A-Z]+)'/g);
+      if (symbols) {
+        for (const s of symbols) {
+          strip.push(s.replace(/'/g, ''));
+        }
+      }
     }
+    if (strip.length > 0) strips.push(strip);
   }
-  return thresholds;
+  return strips;
 }
 
 function parseMultipliers(): Record<string, number> {
@@ -242,17 +253,23 @@ async function menuAnalyzeRTP(): Promise<void> {
   }
 
   console.log(`\n  Running Monte Carlo simulation (${simResponse.spins.toLocaleString()} spins)...`);
-  console.log(`  Grid: ${config.rows}×${config.cols}, minMatch=${config.minMatch}\n`);
+  console.log(`  Grid: ${config.rows}x${config.cols}, minMatch=${config.minMatch}\n`);
 
-  const thresholds = parseThresholds();
+  const reelStrips = parseReelStrips();
   const multipliers = parseMultipliers();
+
+  if (reelStrips.length === 0) {
+    console.log('  ERROR: Could not parse REEL_STRIPS from constants.ts');
+    console.log('  Run "Regenerate Strips" first.\n');
+    return;
+  }
 
   const sim = new RTPSimulator({
     rows: config.rows,
     cols: config.cols,
     minMatch: config.minMatch,
     paylineSymbols: config.paylineSymbols,
-    thresholds,
+    reelStrips,
     multipliers,
   });
 
@@ -277,13 +294,13 @@ async function menuAnalyzeRTP(): Promise<void> {
   console.log('  └──────────────────────────────────────────┘\n');
 }
 
-async function menuBalanceRTP(): Promise<void> {
+async function menuOptimizeStrips(): Promise<void> {
   const config = parseConfig();
 
   const targetResponse = await prompts([
     {
       type: 'number',
-      name: 'target',
+      name: 'targetRTP',
       message: 'Target RTP % (e.g. 49 for 49%)',
       initial: 49,
       min: 1,
@@ -291,113 +308,45 @@ async function menuBalanceRTP(): Promise<void> {
     },
     {
       type: 'number',
-      name: 'tolerance',
-      message: 'Tolerance ±% (default 1.0)',
-      initial: 1.0,
-      min: 0.1,
-      max: 10,
+      name: 'targetHitRate',
+      message: 'Target Hit-Rate % (e.g. 20 for 20%)',
+      initial: 20,
+      min: 1,
+      max: 99,
     },
     {
       type: 'number',
-      name: 'maxIters',
-      message: 'Max iterations (default 100)',
-      initial: 100,
+      name: 'iterations',
+      message: 'Optimizer iterations (default 200)',
+      initial: 200,
       min: 10,
       max: 500,
     },
   ]);
 
-  if (typeof targetResponse.target !== 'number') {
+  if (typeof targetResponse.targetRTP !== 'number') {
     console.log('\n  Cancelled.\n');
     return;
   }
 
-  console.log(`\n  Balancing RTP toward ${targetResponse.target}% (±${targetResponse.tolerance}%)...`);
-  console.log(`  Grid: ${config.rows}×${config.cols}\n`);
+  console.log(`\n  Optimizing strips toward RTP=${targetResponse.targetRTP}% hitRate=${targetResponse.targetHitRate}%...`);
+  console.log(`  Grid: ${config.rows}x${config.cols}\n`);
 
-  const result = RTPBalancer.balance(
-    targetResponse.target,
-    targetResponse.tolerance,
-    targetResponse.maxIters,
-    {
-      rows: config.rows,
-      cols: config.cols,
-      minMatch: config.minMatch,
-      paylineSymbols: config.paylineSymbols,
-    }
-  );
+  const env = {
+    TARGET_RTP: String(targetResponse.targetRTP),
+    TARGET_HITRATE: String(targetResponse.targetHitRate / 100),
+    OPT_ITERATIONS: String(targetResponse.iterations ?? 200),
+    OPT_SPINS: '10000',
+    WRITE_CONSTANTS: '1',
+  };
 
-  console.log('  ┌──────────────────────────────────────────┐');
-  console.log('  │         Balance Report                   │');
-  console.log('  ├──────────────────────────────────────────┤');
-  console.log(`  │  Converged:   ${result.converged ? 'YES' : 'NO'}${' '.repeat(26)}│`);
-  console.log(`  │  Iterations:  ${result.iterations}${' '.repeat(28 - String(result.iterations).length)}│`);
-  console.log(`  │  Final RTP:   ${result.finalRTP.toFixed(2)}%${' '.repeat(25 - result.finalRTP.toFixed(2).length)}│`);
-  console.log(`  │  Target RTP:  ${result.targetRTP.toFixed(1)}%${' '.repeat(25 - result.targetRTP.toFixed(1).length)}│`);
-  console.log('  ├──────────────────────────────────────────┤');
-  console.log('  │  Optimized Thresholds                    │');
-  for (const [k, v] of Object.entries(result.thresholds)) {
-    console.log(`  │  ${k.padEnd(8)} ${String(v).padStart(4)}  (${((v - (result.thresholds as any)[getPrevKey(k, result.thresholds)]) / 9.99).toFixed(1)}%)${' '.repeat(14)}│`);
-  }
-  console.log('  ├──────────────────────────────────────────┤');
-  console.log('  │  Optimized Multipliers                   │');
-  for (const [k, v] of Object.entries(result.multipliers)) {
-    console.log(`  │  ${k.padEnd(15)} x${v.toFixed(3)}${' '.repeat(20 - k.length - v.toFixed(3).length)}│`);
-  }
-  console.log('  └──────────────────────────────────────────┘\n');
+  const envStr = Object.entries(env).map(([k, v]) => `${k}=${v}`).join(' ');
 
-  const apply = await prompts({
-    type: 'confirm',
-    name: 'yes',
-    message: 'Apply these changes to config?',
-    initial: false,
-  });
-
-  if (apply.yes) {
-    await applyBalanceResult(result);
-  }
-}
-
-function getPrevKey(key: string, thresholds: Record<string, number>): string {
-  const order = ['ten', 'jack', 'queen', 'king', 'ace', 'wild', 'bonus'];
-  const idx = order.indexOf(key);
-  return idx <= 0 ? 'ten' : order[idx - 1];
-}
-
-async function applyBalanceResult(result: ReturnType<typeof RTPBalancer.balance>): Promise<void> {
-  // Read current constants.ts
-  let content = readFileSync(CONSTANTS_PATH, 'utf-8');
-
-  // Update THRESHOLDS
-  const threshEntries = Object.entries(result.thresholds)
-    .map(([k, v]) => `  ${k}: ${v}`)
-    .join(',\n');
-
-  content = content.replace(
-    /export const THRESHOLDS = \{[\s\S]*?\} as const;/,
-    `export const THRESHOLDS = {\n${threshEntries}\n} as const;`
-  );
-
-  // Update MULTIPLIERS
-  const multEntries = Object.entries(result.multipliers)
-    .map(([k, v]) => `  '${k}': ${v.toFixed(4)},`)
-    .join('\n');
-
-  content = content.replace(
-    /const HARDCODED_MULTIPLIERS: Record<string, number> = \{[\s\S]*?\};/,
-    `const HARDCODED_MULTIPLIERS: Record<string, number> = {\n${multEntries}\n};`
-  );
-
-  writeFileSync(CONSTANTS_PATH, content, 'utf-8');
-  console.log('\n  Updated constants.ts with balanced values.\n');
-
-  // Regenerate strips
-  console.log('  Auto-regenerating reel strips...\n');
   try {
-    run('pnpm --filter @lucky-slots/engine update-strips');
-    console.log('\n  Balance applied successfully! Run "Build All" to compile.\n');
+    run(`${envStr} pnpm --filter @lucky-slots/engine optimize-strips`);
+    console.log('\n  Optimization complete! Run "Build All" to compile.\n');
   } catch {
-    console.log('\n  Constants updated but strip regeneration failed.\n');
+    console.log('\n  Optimization failed.\n');
   }
 }
 
@@ -416,7 +365,7 @@ async function main(): Promise<void> {
         { title: 'Update Config', value: 'update' },
         { title: 'Regenerate Strips', value: 'strips' },
         { title: 'Analyze RTP', value: 'analyzeRTP' },
-        { title: 'Balance RTP', value: 'balanceRTP' },
+        { title: 'Optimize Strips', value: 'optimize' },
         { title: 'Run Migrations', value: 'migrate' },
         { title: 'Build All', value: 'build' },
         { title: 'Start Dev', value: 'dev' },
@@ -438,8 +387,8 @@ async function main(): Promise<void> {
       case 'analyzeRTP':
         await menuAnalyzeRTP();
         break;
-      case 'balanceRTP':
-        await menuBalanceRTP();
+      case 'optimize':
+        await menuOptimizeStrips();
         break;
       case 'migrate':
         await menuMigrate();

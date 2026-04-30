@@ -24,15 +24,24 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const CONFIG_PATH = resolve(__dirname, '../src/config.ts');
 const CONSTANTS_PATH = resolve(__dirname, '../src/constants.ts');
 
-const DISTRIBUTION = [
-  { symbol: 'TEN', count: 18 },
-  { symbol: 'JACK', count: 6 },
-  { symbol: 'QUEEN', count: 10 },
-  { symbol: 'KING', count: 6 },
-  { symbol: 'ACE', count: 5 },
-  { symbol: 'WILD', count: 2 },
-  { symbol: 'BONUS', count: 53 },
+const BASE_PERCENTAGES = [
+  { symbol: 'TEN', pct: 35 },
+  { symbol: 'JACK', pct: 15 },
+  { symbol: 'QUEEN', pct: 25 },
+  { symbol: 'KING', pct: 15 },
+  { symbol: 'ACE', pct: 8 },
+  { symbol: 'WILD', pct: 2 },
 ];
+
+function scaleDistribution(stripSize: number) {
+  const dist = BASE_PERCENTAGES.map((item) => ({
+    symbol: item.symbol,
+    count: Math.floor(stripSize * item.pct / 100),
+  }));
+  const total = dist.reduce((sum, d) => sum + d.count, 0);
+  dist[dist.length - 1].count += stripSize - total; // adjust last symbol to hit exact size
+  return dist;
+}
 
 /** Parse config.ts as raw text — never cached, always current. */
 function readConfigFromDisk(): { rows: number; cols: number; stripSize: number } {
@@ -65,8 +74,9 @@ function seededRandom(seed: number): () => number {
 
 function buildStrip(seed: number, size: number): string[] {
   const rng = seededRandom(seed);
+  const distribution = scaleDistribution(size);
   const pool: string[] = [];
-  for (const item of DISTRIBUTION) {
+  for (const item of distribution) {
     for (let i = 0; i < item.count; i++) {
       pool.push(item.symbol);
     }
@@ -75,7 +85,7 @@ function buildStrip(seed: number, size: number): string[] {
     const j = Math.floor(rng() * (i + 1));
     [pool[i], pool[j]] = [pool[j], pool[i]];
   }
-  return pool.slice(0, size);
+  return pool;
 }
 
 function generateStrips(reelCount: number, stripSize: number): string[][] {
@@ -145,13 +155,14 @@ function main() {
   console.log(`Updated ${CONSTANTS_PATH} with ${cols} reels.`);
 
   // Verify distribution
+  const expectedDistribution = scaleDistribution(stripSize);
   let allCorrect = true;
   for (let r = 0; r < strips.length; r++) {
     const counts: Record<string, number> = {};
     for (const sym of strips[r]) {
       counts[sym] = (counts[sym] || 0) + 1;
     }
-    for (const item of DISTRIBUTION) {
+    for (const item of expectedDistribution) {
       if (counts[item.symbol] !== item.count) {
         console.error(`Reel ${r + 1}: ${item.symbol} expected ${item.count}, got ${counts[item.symbol]}`);
         allCorrect = false;

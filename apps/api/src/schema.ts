@@ -20,7 +20,6 @@ export const typeDefs = /* GraphQL */ `
     KING
     ACE
     WILD
-    BONUS
   }
 
   type User {

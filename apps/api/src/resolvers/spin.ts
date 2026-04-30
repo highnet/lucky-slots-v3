@@ -41,7 +41,7 @@ import {
 import type { Context } from '../context';
 
 /** GraphQL string names indexed by {@link Symbol} enum value. */
-const GRAPHQL_SYMBOL_NAMES: string[] = ['TEN', 'JACK', 'QUEEN', 'KING', 'ACE', 'WILD', 'BONUS'];
+const GRAPHQL_SYMBOL_NAMES: string[] = ['TEN', 'JACK', 'QUEEN', 'KING', 'ACE', 'WILD'];
 
 /** Shared payline engine (paths are cached internally). */
 const paylineEngine = new PaylineEngine();
@@ -119,9 +119,10 @@ export const spinResolvers = {
         symbols: Array.isArray(s.symbols)
           ? s.symbols.map((row: unknown) =>
               Array.isArray(row)
-                ? row.map((val: unknown) =>
-                    typeof val === 'number' ? GRAPHQL_SYMBOL_NAMES[val] : val
-                  )
+                ? row.map((val: unknown) => {
+                    if (typeof val !== 'number') return val;
+                    return GRAPHQL_SYMBOL_NAMES[val] ?? 'TEN';
+                  })
                 : row
             )
           : s.symbols,
@@ -193,7 +194,7 @@ export const spinResolvers = {
 
       const grid: string[][] = Array.isArray(spin.symbols)
         ? (spin.symbols as unknown[][]).map((row) =>
-            row.map((val) => (typeof val === 'number' ? GRAPHQL_SYMBOL_NAMES[val] : String(val)))
+            row.map((val) => (typeof val === 'number' ? (GRAPHQL_SYMBOL_NAMES[val] ?? 'TEN') : String(val)))
           )
         : [];
 
@@ -261,7 +262,7 @@ export const spinResolvers = {
 
       // Provably fair spin (uses reel strips when available)
       const rng = makeProvablyFairRng(serverSeed, clientSeed, nonce);
-      const spinEngine = new SpinEngine(rng, undefined, REEL_STRIPS);
+      const spinEngine = new SpinEngine(rng, REEL_STRIPS);
       const spinResult = spinEngine.spin();
       const payout = payoutEngine.calculatePayout(spinResult.symbols, spinResult.wildReplacements, bet);
       const finalBalance = newBalance + payout.winnings;
@@ -277,7 +278,7 @@ export const spinResolvers = {
           userId: user.id,
           symbols: spinResult.symbols as unknown,
           winningPaths: payout.winningPaths.map((wp) => ({
-            symbol: GRAPHQL_SYMBOL_NAMES[wp.symbol as number],
+            symbol: GRAPHQL_SYMBOL_NAMES[wp.symbol as number] ?? 'TEN',
             size: wp.size,
             coordinates: wp.coordinates,
           })) as unknown,
@@ -300,7 +301,7 @@ export const spinResolvers = {
         id: spinRecord.id,
         symbols: symbolsToGraphQL(spinResult.symbols),
         winningPaths: payout.winningPaths.map((wp) => ({
-          symbol: GRAPHQL_SYMBOL_NAMES[wp.symbol as number],
+          symbol: GRAPHQL_SYMBOL_NAMES[wp.symbol as number] ?? 'TEN',
           size: wp.size,
           coordinates: wp.coordinates,
         })),

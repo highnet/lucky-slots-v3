@@ -5,14 +5,20 @@ import { Symbol, NUM_ROWS, NUM_REELS } from '../src/types';
 import { GRID_CONFIG } from '../src/config';
 import { getMultiplier } from '../src/constants';
 
+/** Generate a grid with no payline matches (guaranteed). */
+function makeNonMatchingGrid(): Symbol[][] {
+  const symbols = [Symbol.Ten, Symbol.Jack, Symbol.Queen, Symbol.King, Symbol.Ace];
+  return Array.from({ length: NUM_ROWS }, (_, r) =>
+    Array.from({ length: NUM_REELS }, (_, c) => symbols[(r + c * 2) % symbols.length])
+  );
+}
+
 describe('PayoutEngine', () => {
   const paylineEngine = new PaylineEngine();
   const payoutEngine = new PayoutEngine(paylineEngine);
 
   it('returns zero payout for no matches', () => {
-    const grid: Symbol[][] = Array.from({ length: NUM_ROWS }, () =>
-      Array(NUM_REELS).fill(Symbol.Bonus)
-    );
+    const grid = makeNonMatchingGrid();
     const wildReplacements = replaceWilds(grid);
     const result = payoutEngine.calculatePayout(grid, wildReplacements, 1.0);
     expect(result.winnings).toBe(0);
@@ -21,9 +27,7 @@ describe('PayoutEngine', () => {
   });
 
   it('calculates a simple row match', () => {
-    const grid: Symbol[][] = Array.from({ length: NUM_ROWS }, () =>
-      Array(NUM_REELS).fill(Symbol.Bonus)
-    );
+    const grid = makeNonMatchingGrid();
     for (let col = 0; col < NUM_REELS; col++) {
       grid[0][col] = Symbol.Ten;
     }
@@ -97,9 +101,7 @@ describe('PayoutEngine', () => {
   });
 
   it('wilds greedily match the highest symbol first', () => {
-    const grid: Symbol[][] = Array.from({ length: NUM_ROWS }, () =>
-      Array(NUM_REELS).fill(Symbol.Bonus)
-    );
+    const grid = makeNonMatchingGrid();
     for (let col = 0; col < NUM_REELS; col++) {
       grid[0][col] = Symbol.Ace;
       grid[1][col] = Symbol.Ten;
@@ -122,9 +124,7 @@ describe('PayoutEngine', () => {
   });
 
   it('wilds can still match lower symbols if not used by higher', () => {
-    const grid: Symbol[][] = Array.from({ length: NUM_ROWS }, () =>
-      Array(NUM_REELS).fill(Symbol.Bonus)
-    );
+    const grid = makeNonMatchingGrid();
     for (let col = 0; col < NUM_REELS; col++) {
       grid[0][col] = Symbol.Ten;
     }

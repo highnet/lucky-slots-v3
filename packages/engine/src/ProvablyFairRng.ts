@@ -99,9 +99,7 @@ export function generateSeed(): string {
 /**
  * Re-run a spin with stored parameters and compare the resulting grid.
  *
- * When `strips` is provided the verifier uses strip-based offsets
- * (one RNG call per reel), otherwise it falls back to the legacy
- * independent-cell threshold mode.
+ * The verifier uses strip-based offsets (one RNG call per reel).
  *
  * @returns `true` if the recomputed grid exactly matches the original.
  */
@@ -112,47 +110,16 @@ export function verifySpin(
   rows: number,
   cols: number,
   originalSymbols: string[][],
-  strips?: string[][]
+  strips: string[][]
 ): boolean {
   const rng = makeProvablyFairRng(serverSeed, clientSeed, nonce);
 
-  if (strips) {
-    for (let col = 0; col < cols; col++) {
-      const strip = strips[col];
-      const offset = rng() % strip.length;
-      for (let row = 0; row < rows; row++) {
-        const idx = (offset + row) % strip.length;
-        const recomputed = strip[idx];
-        const original = originalSymbols[row]?.[col];
-        if (recomputed !== original) {
-          return false;
-        }
-      }
-    }
-    return true;
-  }
-
-  // Legacy threshold-based verification (matches sparse strip distribution)
-  const THRESHOLDS = [
-    { threshold: 180, name: 'Ten' },
-    { threshold: 240, name: 'Jack' },
-    { threshold: 340, name: 'Queen' },
-    { threshold: 400, name: 'King' },
-    { threshold: 450, name: 'Ace' },
-    { threshold: 470, name: 'Wild' },
-    { threshold: 999, name: 'Bonus' },
-  ];
-
-  function rngToSymbol(rng: number): string {
-    for (const entry of THRESHOLDS) {
-      if (rng < entry.threshold) return entry.name.toUpperCase();
-    }
-    return 'BONUS';
-  }
-
-  for (let row = 0; row < rows; row++) {
-    for (let col = 0; col < cols; col++) {
-      const recomputed = rngToSymbol(rng());
+  for (let col = 0; col < cols; col++) {
+    const strip = strips[col];
+    const offset = rng() % strip.length;
+    for (let row = 0; row < rows; row++) {
+      const idx = (offset + row) % strip.length;
+      const recomputed = strip[idx];
       const original = originalSymbols[row]?.[col];
       if (recomputed !== original) {
         return false;

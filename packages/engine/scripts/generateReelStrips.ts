@@ -1,21 +1,25 @@
 import { GRID_CONFIG } from '../src/config';
 
-// Sparse distribution for high-volatility gameplay.
-// Bonus acts as a non-winning stop (no payline matches).
-interface StripConfig {
-  symbol: string;
-  count: number;
-}
-
-const DISTRIBUTION: StripConfig[] = [
-  { symbol: 'TEN', count: 18 },
-  { symbol: 'JACK', count: 6 },
-  { symbol: 'QUEEN', count: 10 },
-  { symbol: 'KING', count: 6 },
-  { symbol: 'ACE', count: 5 },
-  { symbol: 'WILD', count: 2 },
-  { symbol: 'BONUS', count: 53 },
+// Distribution percentages for all symbols.
+// Percentages scale dynamically to any stripSize.
+const BASE_PERCENTAGES = [
+  { symbol: 'TEN', pct: 35 },
+  { symbol: 'JACK', pct: 15 },
+  { symbol: 'QUEEN', pct: 25 },
+  { symbol: 'KING', pct: 15 },
+  { symbol: 'ACE', pct: 8 },
+  { symbol: 'WILD', pct: 2 },
 ];
+
+function scaleDistribution(stripSize: number) {
+  const dist = BASE_PERCENTAGES.map((item) => ({
+    symbol: item.symbol,
+    count: Math.floor(stripSize * item.pct / 100),
+  }));
+  const total = dist.reduce((sum, d) => sum + d.count, 0);
+  dist[dist.length - 1].count += stripSize - total;
+  return dist;
+}
 
 function seededRandom(seed: number): () => number {
   let s = seed;
@@ -27,9 +31,10 @@ function seededRandom(seed: number): () => number {
 
 function buildStrip(seed: number, size: number): string[] {
   const rng = seededRandom(seed);
+  const distribution = scaleDistribution(size);
 
   const pool: string[] = [];
-  for (const item of DISTRIBUTION) {
+  for (const item of distribution) {
     for (let i = 0; i < item.count; i++) {
       pool.push(item.symbol);
     }
@@ -40,7 +45,7 @@ function buildStrip(seed: number, size: number): string[] {
     [pool[i], pool[j]] = [pool[j], pool[i]];
   }
 
-  return pool.slice(0, size);
+  return pool;
 }
 
 function verifyStrip(strip: string[]): Record<string, number> {
@@ -102,10 +107,11 @@ console.log('\n=== TypeScript Output ===\n');
 console.log(toTypeScript(strips));
 
 console.log('\n=== Verification ===');
+const expectedDistribution = scaleDistribution(stripSize);
 let allCorrect = true;
 for (let r = 0; r < strips.length; r++) {
   const counts = verifyStrip(strips[r]);
-  for (const item of DISTRIBUTION) {
+  for (const item of expectedDistribution) {
     if (counts[item.symbol] !== item.count) {
       console.error(`Reel ${r + 1}: ${item.symbol} expected ${item.count}, got ${counts[item.symbol]}`);
       allCorrect = false;

@@ -13,8 +13,7 @@
  *                      hit-rate.
  *
  * Why two phases?
- *   Separating layout from payout makes the search space tractable and
- *   prevents degenerate solutions (e.g. all blanks → 0 RTP).
+ *   Separating layout from payout makes the search space tractable.
  *
  * Usage:
  *   import { ReelOptimizer } from './ReelOptimizer';
@@ -93,7 +92,6 @@ const STRING_TO_SYMBOL: Record<string, Symbol> = {
   KING: Symbol.King,
   ACE: Symbol.Ace,
   WILD: Symbol.Wild,
-  BONUS: Symbol.Bonus,
 };
 
 function simulateStrips(
@@ -243,7 +241,7 @@ function moveSymbolBetweenReels(strips: string[][], rng: () => number): MoveResu
 
   const countsA = countSymbols(strips[reelA]);
   // Candidates: symbols with at least 2 occurrences (keep 1 as minimum)
-  const candidates = Object.keys(countsA).filter((s) => countsA[s] > 2 && s !== 'WILD' && s !== 'BONUS');
+  const candidates = Object.keys(countsA).filter((s) => countsA[s] > 2 && s !== 'WILD');
   if (candidates.length === 0) {
     return randomSwapWithinReel(strips, reelA, rng);
   }
@@ -340,17 +338,15 @@ export class ReelOptimizer {
     const rng = mulberry32(12345);
     const evalRng = () => rng();
 
-    /* ---------- build starting strips (sparse distribution) ---------- */
-    // Lower payline-symbol density → lower hit-rate, higher volatility.
-    // Bonus acts as a non-winning stop (no payline matches).
+    /* ---------- build starting strips (all real symbols) ---------- */
+    // Every stop is a real symbol. Uneven cross-reel distribution lowers hit-rate.
     const baseDistribution = [
-      { symbol: 'TEN', count: 18 },
-      { symbol: 'JACK', count: 6 },
-      { symbol: 'QUEEN', count: 10 },
-      { symbol: 'KING', count: 6 },
-      { symbol: 'ACE', count: 5 },
+      { symbol: 'TEN', count: 35 },
+      { symbol: 'JACK', count: 15 },
+      { symbol: 'QUEEN', count: 25 },
+      { symbol: 'KING', count: 15 },
+      { symbol: 'ACE', count: 8 },
       { symbol: 'WILD', count: 2 },
-      { symbol: 'BONUS', count: 53 },
     ];
 
     let currentStrips: string[][] = [];

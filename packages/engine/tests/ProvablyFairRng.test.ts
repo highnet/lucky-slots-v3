@@ -8,6 +8,12 @@ import {
   verifySpin,
 } from '../src/ProvablyFairRng';
 
+const TEST_STRIPS = [
+  ['TEN', 'JACK', 'QUEEN', 'KING', 'ACE', 'WILD'],
+  ['TEN', 'JACK', 'QUEEN', 'KING', 'ACE', 'WILD'],
+  ['TEN', 'JACK', 'QUEEN', 'KING', 'ACE', 'WILD'],
+];
+
 describe('ProvablyFairRng', () => {
   describe('provablyFairRng', () => {
     it('returns a deterministic value for the same inputs', () => {
@@ -15,7 +21,6 @@ describe('ProvablyFairRng', () => {
       const b = provablyFairRng('seed1', 'seed2', 0, 0);
       expect(a).toBe(b);
       expect(a).toBeGreaterThanOrEqual(0);
-      expect(a).toBeLessThan(999);
     });
 
     it('returns different values for different counters', () => {
@@ -38,11 +43,10 @@ describe('ProvablyFairRng', () => {
       expect(a).not.toBe(b);
     });
 
-    it('always returns a value in [0, 999)', () => {
+    it('always returns a non-negative value', () => {
       for (let i = 0; i < 100; i++) {
         const val = provablyFairRng('s', 'c', i, i * 2);
         expect(val).toBeGreaterThanOrEqual(0);
-        expect(val).toBeLessThan(999);
       }
     });
   });
@@ -104,7 +108,7 @@ describe('ProvablyFairRng', () => {
   });
 
   describe('verifySpin', () => {
-    it('returns true for a grid that matches the RNG sequence', () => {
+    it('returns true for a grid that matches the strip offsets', () => {
       const serverSeed = 'abc123';
       const clientSeed = 'def456';
       const nonce = 7;
@@ -113,23 +117,17 @@ describe('ProvablyFairRng', () => {
 
       const rng = makeProvablyFairRng(serverSeed, clientSeed, nonce);
       const grid: string[][] = [];
-      for (let r = 0; r < rows; r++) {
-        const row: string[] = [];
-        for (let c = 0; c < cols; c++) {
-          const val = rng();
-          let sym = 'BONUS';
-          if (val < 180) sym = 'TEN';
-          else if (val < 240) sym = 'JACK';
-          else if (val < 340) sym = 'QUEEN';
-          else if (val < 400) sym = 'KING';
-          else if (val < 450) sym = 'ACE';
-          else if (val < 470) sym = 'WILD';
-          row.push(sym);
+      for (let c = 0; c < cols; c++) {
+        const strip = TEST_STRIPS[c];
+        const offset = rng() % strip.length;
+        for (let r = 0; r < rows; r++) {
+          if (!grid[r]) grid[r] = [];
+          const idx = (offset + r) % strip.length;
+          grid[r][c] = strip[idx];
         }
-        grid.push(row);
       }
 
-      expect(verifySpin(serverSeed, clientSeed, nonce, rows, cols, grid)).toBe(true);
+      expect(verifySpin(serverSeed, clientSeed, nonce, rows, cols, grid, TEST_STRIPS)).toBe(true);
     });
 
     it('returns false when the grid does not match', () => {
@@ -138,7 +136,7 @@ describe('ProvablyFairRng', () => {
         ['TEN', 'TEN', 'TEN'],
         ['TEN', 'TEN', 'TEN'],
       ];
-      expect(verifySpin('s', 'c', 0, 3, 3, grid)).toBe(false);
+      expect(verifySpin('s', 'c', 0, 3, 3, grid, TEST_STRIPS)).toBe(false);
     });
 
     it('returns false when a single cell is wrong', () => {
@@ -150,25 +148,19 @@ describe('ProvablyFairRng', () => {
 
       const rng = makeProvablyFairRng(serverSeed, clientSeed, nonce);
       const grid: string[][] = [];
-      for (let r = 0; r < rows; r++) {
-        const row: string[] = [];
-        for (let c = 0; c < cols; c++) {
-          const val = rng();
-          let sym = 'BONUS';
-          if (val < 180) sym = 'TEN';
-          else if (val < 240) sym = 'JACK';
-          else if (val < 340) sym = 'QUEEN';
-          else if (val < 400) sym = 'KING';
-          else if (val < 450) sym = 'ACE';
-          else if (val < 470) sym = 'WILD';
-          row.push(sym);
+      for (let c = 0; c < cols; c++) {
+        const strip = TEST_STRIPS[c];
+        const offset = rng() % strip.length;
+        for (let r = 0; r < rows; r++) {
+          if (!grid[r]) grid[r] = [];
+          const idx = (offset + r) % strip.length;
+          grid[r][c] = strip[idx];
         }
-        grid.push(row);
       }
 
       // Mutate one cell
       grid[0][0] = grid[0][0] === 'TEN' ? 'JACK' : 'TEN';
-      expect(verifySpin(serverSeed, clientSeed, nonce, rows, cols, grid)).toBe(false);
+      expect(verifySpin(serverSeed, clientSeed, nonce, rows, cols, grid, TEST_STRIPS)).toBe(false);
     });
   });
 });

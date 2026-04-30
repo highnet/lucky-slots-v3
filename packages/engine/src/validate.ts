@@ -10,7 +10,7 @@
 
 import { GRID_CONFIG } from './config';
 import { Symbol, GRAPHQL_SYMBOL_NAMES, NUM_REELS, NUM_SYMBOLS } from './types';
-import { REEL_STRIPS, THRESHOLDS, MULTIPLIERS, getMultiplier, BET_AMOUNTS, DEFAULT_BALANCE, DEFAULT_BET } from './constants';
+import { REEL_STRIPS, MULTIPLIERS, getMultiplier, BET_AMOUNTS, DEFAULT_BALANCE, DEFAULT_BET } from './constants';
 
 class EngineFatalError extends Error {
   constructor(message: string) {
@@ -92,22 +92,6 @@ function validateReelStrips(): void {
   }
 }
 
-function validateThresholds(): void {
-  const entries = Object.entries(THRESHOLDS);
-  assert(entries.length === NUM_SYMBOLS,
-    `THRESHOLDS has ${entries.length} entries but numSymbols is ${NUM_SYMBOLS}.`);
-
-  let prev = -1;
-  for (const [name, value] of entries) {
-    assert(Number.isInteger(value) && value > prev,
-      `THRESHOLDS.${name} (${value}) must be an integer strictly greater than the previous threshold (${prev}).`);
-    prev = value;
-  }
-
-  assert(prev === 999,
-    `Last THRESHOLD must be exactly 999 (covers full RNG range 0-999), got ${prev}.`);
-}
-
 /** Title-case names used in MULTIPLIERS keys (e.g. "Ten", "Ace"). */
 const PAYLINE_SYMBOL_TITLES = ['Ten', 'Jack', 'Queen', 'King', 'Ace'];
 
@@ -168,7 +152,6 @@ function runValidations(): void {
   validateGridConfig();
   validateSymbolEnum();
   validateReelStrips();
-  validateThresholds();
   validateMultipliers();
   validateBetConfig();
 }
