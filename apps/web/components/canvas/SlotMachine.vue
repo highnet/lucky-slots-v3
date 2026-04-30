@@ -1,3 +1,4 @@
+<!-- 3D slot machine grid rendered with TresJS. Displays coloured boxes and emoji overlays. -->
 <template>
   <TresGroup>
     <TresMesh

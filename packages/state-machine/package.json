@@ -7,7 +7,7 @@
   "types": "./src/index.ts",
   "scripts": {
     "lint": "eslint .",
-    "test": "vitest run",
+    "test": "vitest run --passWithNoTests",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

@@ -45,10 +45,20 @@ function isContained(superMask: bigint, subMask: bigint): boolean {
 export class PayoutEngine {
   private paylineEngine: PaylineEngine;
   private cols: number;
+  private customMultipliers?: Record<string, number>;
 
-  constructor(paylineEngine: PaylineEngine) {
+  constructor(paylineEngine: PaylineEngine, multipliers?: Record<string, number>) {
     this.paylineEngine = paylineEngine;
     this.cols = NUM_REELS;
+    this.customMultipliers = multipliers;
+  }
+
+  private resolveMultiplier(size: number, symbol: string): number {
+    const key = `${size} ${symbol}`;
+    if (this.customMultipliers && key in this.customMultipliers) {
+      return this.customMultipliers[key];
+    }
+    return getMultiplier(size, symbol);
   }
 
   /**
@@ -181,7 +191,7 @@ export class PayoutEngine {
       if (m) {
         const size = parseInt(m[1], 10);
         const symName = m[2];
-        multiplier += getMultiplier(size, symName);
+        multiplier += this.resolveMultiplier(size, symName);
       }
     }
 

@@ -1,3 +1,4 @@
+<!-- Button that cycles the current bet through predefined amounts. -->
 <template>
   <button
     @click="handleCycle"

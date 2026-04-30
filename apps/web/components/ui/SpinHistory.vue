@@ -1,3 +1,4 @@
+<!-- Scrollable sidebar listing the player's recent spins with win details and mini grids. -->
 <template>
   <div class="bg-slate-800 rounded-2xl border border-slate-700 flex flex-col h-[28rem] sm:h-[32rem] lg:h-[36rem]">
     <div class="px-4 py-3 border-b border-slate-700 flex justify-between items-center shrink-0">
@@ -36,6 +37,13 @@
               No win
             </div>
           </div>
+          <button
+            @click="openVerify(entry)"
+            class="shrink-0 text-xs px-2 py-1 rounded bg-slate-600/50 hover:bg-blue-600/50 hover:text-blue-300 text-slate-400 transition-colors"
+            title="Verify fairness"
+          >
+            🔐 Verify
+          </button>
         </div>
 
         <!-- Mini grid + breakdown (only for wins) -->
@@ -74,12 +82,18 @@
         </div>
       </div>
     </div>
+
+    <VerifyFairnessModal
+      v-model="showVerifyModal"
+      :entry="selectedEntry"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, watch, nextTick } from 'vue';
 import { GRAPHQL_EMOJIS, getMultiplier } from '@lucky-slots/engine';
+import VerifyFairnessModal from './VerifyFairnessModal.vue';
 
 interface SpinEntry {
   id: string;
@@ -100,6 +114,13 @@ const props = defineProps<{
 }>();
 
 const scrollRef = ref<HTMLElement | null>(null);
+const showVerifyModal = ref(false);
+const selectedEntry = ref<SpinEntry | null>(null);
+
+function openVerify(entry: SpinEntry) {
+  selectedEntry.value = entry;
+  showVerifyModal.value = true;
+}
 
 function symbolEmoji(name: string): string {
   return GRAPHQL_EMOJIS[name] ?? '❓';

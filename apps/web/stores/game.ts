@@ -1,5 +1,15 @@
+/**
+ * @fileoverview stores/game.ts
+ *
+ * Pinia store for active game state.
+ *
+ * Tracks balance, bet, the current animation phase, the most recent spin
+ * result, and any winning paths so the UI can highlight winning cells.
+ */
+
 import { defineStore } from 'pinia';
 
+/** All possible UI animation phases for a single spin cycle. */
 export type GamePhase =
   | 'idle'
   | 'spinning'

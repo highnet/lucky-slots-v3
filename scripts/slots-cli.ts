@@ -14,10 +14,12 @@ import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
 import prompts from 'prompts';
+import { RTPSimulator, RTPBalancer } from '@lucky-slots/engine';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ENGINE_DIR = resolve(__dirname, '../packages/engine/src');
 const CONFIG_PATH = resolve(ENGINE_DIR, 'config.ts');
+const CONSTANTS_PATH = resolve(ENGINE_DIR, 'constants.ts');
 
 interface GridConfig {
   rows: number;
@@ -116,7 +118,6 @@ async function menuUpdateConfig(): Promise<void> {
 
   writeConfig(updates);
 
-  // Verify write succeeded by re-reading the file
   const after = parseConfig();
   let verified = true;
   for (const [k, v] of Object.entries(updates)) {
@@ -136,7 +137,6 @@ async function menuUpdateConfig(): Promise<void> {
     console.log(`    ${k}: ${v}`);
   }
 
-  // Auto-regenerate strips
   console.log('\n  Auto-regenerating reel strips...\n');
   try {
     run('pnpm --filter @lucky-slots/engine update-strips');
@@ -196,6 +196,178 @@ async function menuSetup(): Promise<void> {
   console.log('\n  Setup complete! Run "Start Dev" to begin.\n');
 }
 
+async function menuAnalyzeRTP(): Promise<void> {
+  const config = parseConfig();
+  const simResponse = await prompts({
+    type: 'number',
+    name: 'spins',
+    message: 'Number of spins to simulate',
+    initial: 100_000,
+    min: 1000,
+  });
+
+  if (typeof simResponse.spins !== 'number') {
+    console.log('\n  Cancelled.\n');
+    return;
+  }
+
+  console.log(`\n  Running Monte Carlo simulation (${simResponse.spins.toLocaleString()} spins)...`);
+  console.log(`  Grid: ${config.rows}×${config.cols}, minMatch=${config.minMatch}\n`);
+
+  const sim = new RTPSimulator({
+    rows: config.rows,
+    cols: config.cols,
+    minMatch: config.minMatch,
+    paylineSymbols: config.paylineSymbols,
+    thresholds: { ten: 450, jack: 550, queen: 750, king: 880, ace: 970, wild: 990, bonus: 999 },
+    multipliers: {},
+  });
+
+  const result = sim.run(simResponse.spins, 1.0, Date.now());
+
+  console.log('  ┌──────────────────────────────────────────┐');
+  console.log('  │         RTP Analysis Results             │');
+  console.log('  ├──────────────────────────────────────────┤');
+  console.log(`  │  RTP:               ${result.rtp.toFixed(2)}%${' '.repeat(14 - result.rtp.toFixed(2).length)}│`);
+  console.log(`  │  Hit Frequency:     ${(result.hitFrequency * 100).toFixed(2)}%${' '.repeat(14 - (result.hitFrequency * 100).toFixed(2).length)}│`);
+  console.log(`  │  Avg Multiplier:    ${result.avgMultiplier.toFixed(3)}${' '.repeat(15 - result.avgMultiplier.toFixed(3).length)}│`);
+  console.log(`  │  Max Multiplier:    ${result.maxMultiplier.toFixed(2)}${' '.repeat(15 - result.maxMultiplier.toFixed(2).length)}│`);
+  console.log(`  │  Variance:          ${result.variance.toFixed(4)}${' '.repeat(15 - result.variance.toFixed(4).length)}│`);
+  console.log(`  │  95% CI:            ±${result.confidenceInterval.toFixed(3)}%${' '.repeat(13 - result.confidenceInterval.toFixed(3).length)}│`);
+  console.log('  ├──────────────────────────────────────────┤');
+  console.log('  │  Per-Symbol RTP Contribution             │');
+  const sortedSymbols = Object.entries(result.perSymbolRTP).sort((a, b) => b[1] - a[1]);
+  for (const [sym, rtp] of sortedSymbols) {
+    const line = `${sym}: ${rtp.toFixed(2)}%`;
+    console.log(`  │  ${line.padEnd(38)}│`);
+  }
+  console.log('  └──────────────────────────────────────────┘\n');
+}
+
+async function menuBalanceRTP(): Promise<void> {
+  const config = parseConfig();
+
+  const targetResponse = await prompts([
+    {
+      type: 'number',
+      name: 'target',
+      message: 'Target RTP % (e.g. 49 for 49%)',
+      initial: 49,
+      min: 1,
+      max: 99,
+    },
+    {
+      type: 'number',
+      name: 'tolerance',
+      message: 'Tolerance ±% (default 1.0)',
+      initial: 1.0,
+      min: 0.1,
+      max: 10,
+    },
+    {
+      type: 'number',
+      name: 'maxIters',
+      message: 'Max iterations (default 100)',
+      initial: 100,
+      min: 10,
+      max: 500,
+    },
+  ]);
+
+  if (typeof targetResponse.target !== 'number') {
+    console.log('\n  Cancelled.\n');
+    return;
+  }
+
+  console.log(`\n  Balancing RTP toward ${targetResponse.target}% (±${targetResponse.tolerance}%)...`);
+  console.log(`  Grid: ${config.rows}×${config.cols}\n`);
+
+  const result = RTPBalancer.balance(
+    targetResponse.target,
+    targetResponse.tolerance,
+    targetResponse.maxIters,
+    {
+      rows: config.rows,
+      cols: config.cols,
+      minMatch: config.minMatch,
+      paylineSymbols: config.paylineSymbols,
+    }
+  );
+
+  console.log('  ┌──────────────────────────────────────────┐');
+  console.log('  │         Balance Report                   │');
+  console.log('  ├──────────────────────────────────────────┤');
+  console.log(`  │  Converged:   ${result.converged ? 'YES' : 'NO'}${' '.repeat(26)}│`);
+  console.log(`  │  Iterations:  ${result.iterations}${' '.repeat(28 - String(result.iterations).length)}│`);
+  console.log(`  │  Final RTP:   ${result.finalRTP.toFixed(2)}%${' '.repeat(25 - result.finalRTP.toFixed(2).length)}│`);
+  console.log(`  │  Target RTP:  ${result.targetRTP.toFixed(1)}%${' '.repeat(25 - result.targetRTP.toFixed(1).length)}│`);
+  console.log('  ├──────────────────────────────────────────┤');
+  console.log('  │  Optimized Thresholds                    │');
+  for (const [k, v] of Object.entries(result.thresholds)) {
+    console.log(`  │  ${k.padEnd(8)} ${String(v).padStart(4)}  (${((v - (result.thresholds as any)[getPrevKey(k, result.thresholds)]) / 9.99).toFixed(1)}%)${' '.repeat(14)}│`);
+  }
+  console.log('  ├──────────────────────────────────────────┤');
+  console.log('  │  Optimized Multipliers                   │');
+  for (const [k, v] of Object.entries(result.multipliers)) {
+    console.log(`  │  ${k.padEnd(15)} x${v.toFixed(3)}${' '.repeat(20 - k.length - v.toFixed(3).length)}│`);
+  }
+  console.log('  └──────────────────────────────────────────┘\n');
+
+  const apply = await prompts({
+    type: 'confirm',
+    name: 'yes',
+    message: 'Apply these changes to config?',
+    initial: false,
+  });
+
+  if (apply.yes) {
+    await applyBalanceResult(result);
+  }
+}
+
+function getPrevKey(key: string, thresholds: Record<string, number>): string {
+  const order = ['ten', 'jack', 'queen', 'king', 'ace', 'wild', 'bonus'];
+  const idx = order.indexOf(key);
+  return idx <= 0 ? 'ten' : order[idx - 1];
+}
+
+async function applyBalanceResult(result: ReturnType<typeof RTPBalancer.balance>): Promise<void> {
+  // Read current constants.ts
+  let content = readFileSync(CONSTANTS_PATH, 'utf-8');
+
+  // Update THRESHOLDS
+  const threshEntries = Object.entries(result.thresholds)
+    .map(([k, v]) => `  ${k}: ${v}`)
+    .join(',\n');
+
+  content = content.replace(
+    /export const THRESHOLDS = \{[\s\S]*?\} as const;/,
+    `export const THRESHOLDS = {\n${threshEntries}\n} as const;`
+  );
+
+  // Update MULTIPLIERS
+  const multEntries = Object.entries(result.multipliers)
+    .map(([k, v]) => `  '${k}': ${v.toFixed(4)},`)
+    .join('\n');
+
+  content = content.replace(
+    /const HARDCODED_MULTIPLIERS: Record<string, number> = \{[\s\S]*?\};/,
+    `const HARDCODED_MULTIPLIERS: Record<string, number> = {\n${multEntries}\n};`
+  );
+
+  writeFileSync(CONSTANTS_PATH, content, 'utf-8');
+  console.log('\n  Updated constants.ts with balanced values.\n');
+
+  // Regenerate strips
+  console.log('  Auto-regenerating reel strips...\n');
+  try {
+    run('pnpm --filter @lucky-slots/engine update-strips');
+    console.log('\n  Balance applied successfully! Run "Build All" to compile.\n');
+  } catch {
+    console.log('\n  Constants updated but strip regeneration failed.\n');
+  }
+}
+
 async function main(): Promise<void> {
   let running = true;
 
@@ -210,6 +382,8 @@ async function main(): Promise<void> {
         { title: 'Show Config', value: 'config' },
         { title: 'Update Config', value: 'update' },
         { title: 'Regenerate Strips', value: 'strips' },
+        { title: 'Analyze RTP', value: 'analyzeRTP' },
+        { title: 'Balance RTP', value: 'balanceRTP' },
         { title: 'Run Migrations', value: 'migrate' },
         { title: 'Build All', value: 'build' },
         { title: 'Start Dev', value: 'dev' },
@@ -227,6 +401,12 @@ async function main(): Promise<void> {
         break;
       case 'strips':
         await menuRegenerateStrips();
+        break;
+      case 'analyzeRTP':
+        await menuAnalyzeRTP();
+        break;
+      case 'balanceRTP':
+        await menuBalanceRTP();
         break;
       case 'migrate':
         await menuMigrate();

@@ -1,3 +1,4 @@
+<!-- Single reel (column) in the slot grid. Renders symbols with spin/winner styling. -->
 <template>
   <div class="flex flex-col gap-1 sm:gap-1.5">
     <div

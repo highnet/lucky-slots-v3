@@ -1,3 +1,4 @@
+<!-- Primary action button that triggers a spin mutation and advances the game phase. -->
 <template>
   <button
     @click="handleSpin"

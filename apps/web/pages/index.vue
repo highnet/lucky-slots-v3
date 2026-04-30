@@ -1,3 +1,4 @@
+<!-- Main game page: slot grid, controls, balance/bet display, and spin history. -->
 <template>
   <div class="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center p-3 sm:p-4">
     <!-- Auth prompt -->

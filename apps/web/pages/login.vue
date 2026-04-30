@@ -1,3 +1,4 @@
+<!-- Authentication page: toggles between login and registration forms. -->
 <template>
   <div class="min-h-screen flex items-center justify-center bg-slate-900 text-white">
     <div class="w-full max-w-md p-8 bg-slate-800 rounded-2xl shadow-2xl">

@@ -1,3 +1,4 @@
+<!-- Positions an emoji symbol on screen to overlay a 3D TresJS grid cell. -->
 <template>
   <div
     class="absolute text-4xl select-none pointer-events-none"
@@ -17,8 +18,10 @@ const props = defineProps<{
   symbol: string;
 }>();
 
+/** Resolved emoji for the current symbol name. */
 const emoji = computed(() => GRAPHQL_EMOJIS[props.symbol] ?? '❓');
 
+/** Absolute positioning style for screen overlay. */
 const styleObject = computed(() => ({
   left: `${screenX.value}px`,
   top: `${screenY.value}px`,
@@ -26,7 +29,7 @@ const styleObject = computed(() => ({
   fontFamily: '"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif',
 }));
 
-// Map 3D grid position to screen coordinates roughly
+/** Map 3D grid column to a screen X coordinate (rough heuristic). */
 const screenX = computed(() => {
   const canvasWidth = window.innerWidth;
   const centerX = canvasWidth / 2;
@@ -34,6 +37,7 @@ const screenX = computed(() => {
   return centerX + offset;
 });
 
+/** Map 3D grid row to a screen Y coordinate (rough heuristic). */
 const screenY = computed(() => {
   const canvasHeight = window.innerHeight;
   const centerY = canvasHeight / 2;

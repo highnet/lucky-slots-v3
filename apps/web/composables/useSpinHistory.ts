@@ -1,5 +1,20 @@
+/**
+ * @fileoverview composables/useSpinHistory.ts
+ *
+ * Vue composable for fetching the authenticated user's spin history.
+ *
+ * Normalises raw GraphQL responses into a strongly typed `SpinHistoryEntry`
+ * array suitable for the `SpinHistory` UI component.
+ */
+
+/** GraphQL endpoint shared across all composables. */
 const API_URL = 'http://localhost:4000/graphql';
 
+/**
+ * Generic GraphQL POST helper with credentials included.
+ *
+ * @throws Error when the GraphQL response contains errors
+ */
 async function graphqlRequest<T>(query: string, variables?: Record<string, unknown>): Promise<T> {
   const res = await fetch(API_URL, {
     method: 'POST',
@@ -14,6 +29,7 @@ async function graphqlRequest<T>(query: string, variables?: Record<string, unkno
   return json.data as T;
 }
 
+/** Normalised shape of a single spin record for UI consumption. */
 export interface SpinHistoryEntry {
   id: string;
   bet: number;
@@ -29,7 +45,11 @@ export interface SpinHistoryEntry {
   }[];
 }
 
+/**
+ * Provides a helper to fetch and normalise the user's spin history.
+ */
 export function useSpinHistory() {
+  /** Fetch the most recent spins from the API. */
   async function fetchHistory(limit = 50): Promise<SpinHistoryEntry[]> {
     const data = await graphqlRequest<{ mySpins: unknown[] }>(`
       query {

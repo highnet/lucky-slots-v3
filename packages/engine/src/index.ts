@@ -13,6 +13,9 @@ export * from './constants';
 export * from './SpinEngine';
 export * from './PaylineEngine';
 export * from './PayoutEngine';
+export * from './ProvablyFairRng';
+export * from './RTPSimulator';
+export * from './RTPBalancer';
 
 // Run critical safety validations at module load time.
 // This will throw a fatal error if the engine is misconfigured.

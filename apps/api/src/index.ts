@@ -1,3 +1,13 @@
+/**
+ * @fileoverview index.ts
+ *
+ * Entry point for the Lucky Slots GraphQL API server.
+ *
+ * Sets up a GraphQL Yoga server over plain HTTP, merges domain resolvers
+ * (auth + spin), and builds a request context that includes the current
+ * user session, database handle, and Redis client.
+ */
+
 import 'dotenv/config';
 import { createYoga } from 'graphql-yoga';
 import { createServer } from 'node:http';
@@ -8,6 +18,12 @@ import { createSchema } from './schema';
 import { authResolvers } from './resolvers/auth';
 import { spinResolvers } from './resolvers/spin';
 
+/**
+ * Merge multiple resolver objects into a single resolver map.
+ *
+ * Each resolver object may export Query, Mutation, or Subscription fields.
+ * The result is passed to {@link createSchema}.
+ */
 function mergeResolvers(
   ...resolversArray: Array<{
     Query?: Record<string, unknown>;

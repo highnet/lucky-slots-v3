@@ -1,7 +1,23 @@
+/**
+ * @fileoverview composables/useReelStrips.ts
+ *
+ * Vue composable for fetching static slot configuration from the API.
+ *
+ * Provides cached access to `gridConfig` and `reelStrips`, plus a helper
+ * `getReelWindow` that extracts a vertical slice of symbols from a strip
+ * given a starting offset.
+ */
+
 import { GRID_CONFIG } from '@lucky-slots/engine';
 
+/** GraphQL endpoint shared across all composables. */
 const API_URL = 'http://localhost:4000/graphql';
 
+/**
+ * Generic GraphQL POST helper with credentials included.
+ *
+ * @throws Error when the GraphQL response contains errors
+ */
 async function graphqlRequest<T>(query: string, variables?: Record<string, unknown>): Promise<T> {
   const res = await fetch(API_URL, {
     method: 'POST',
@@ -16,6 +32,7 @@ async function graphqlRequest<T>(query: string, variables?: Record<string, unkno
   return json.data as T;
 }
 
+/** Grid dimensions and payline settings returned by the API. */
 export interface GridConfig {
   rows: number;
   cols: number;
@@ -25,9 +42,11 @@ export interface GridConfig {
   paylineSymbols: number;
 }
 
+/** In-memory cache so repeated calls during hydration are free. */
 let cachedConfig: GridConfig | null = null;
 let cachedStrips: string[][] | null = null;
 
+/** Fetch grid config from the API (cached after first call). */
 export async function fetchGridConfig(): Promise<GridConfig> {
   if (cachedConfig) return cachedConfig;
   const data = await graphqlRequest<{ gridConfig: GridConfig }>(`
@@ -37,6 +56,7 @@ export async function fetchGridConfig(): Promise<GridConfig> {
   return cachedConfig;
 }
 
+/** Fetch reel strips from the API (cached after first call). */
 export async function fetchReelStrips(): Promise<string[][]> {
   if (cachedStrips) return cachedStrips;
   const data = await graphqlRequest<{ reelStrips: string[][] }>(`
@@ -46,6 +66,15 @@ export async function fetchReelStrips(): Promise<string[][]> {
   return cachedStrips;
 }
 
+/**
+ * Extract a vertical window of symbols from a single reel strip.
+ *
+ * @param reelIndex  Which reel (column) to read from
+ * @param offset     Starting index in the strip (wraps around)
+ * @param strips     Full set of reel strips from the API
+ * @param rowCount   How many symbols to extract (defaults to grid rows)
+ * @returns          Array of symbol names for that reel window
+ */
 export function getReelWindow(
   reelIndex: number,
   offset: number,

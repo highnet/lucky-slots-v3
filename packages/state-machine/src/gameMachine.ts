@@ -1,13 +1,40 @@
+/**
+ * @fileoverview gameMachine.ts
+ *
+ * XState finite-state machine that models the Lucky Slots UI flow.
+ *
+ * States:
+ *   idle            – waiting for player input
+ *   spinning        – reels are animating (3s timeout fallback)
+ *   landing         – reels have stopped, deciding next step
+ *   showingPaylines – highlighting winning lines
+ *   showingWinners  – celebrating winning symbols
+ *   showingWinnings – displaying the win amount
+ *   resetting       – clearing the board back to idle
+ *
+ * Guards:
+ *   canAffordBet – ensures balance >= current bet
+ *   hasWinnings  – transitions to payline display only when there are wins
+ *
+ * Actions:
+ *   deductBalance – subtracts bet from balance on spin start
+ *   awardWinnings – adds spin winnings to balance
+ *   resetBoard    – clears spin result and winning paths
+ */
+
 import { createMachine } from 'xstate';
 
+/** Minimal spin result shape used by the machine context. */
 interface SpinResult {
   winnings: number;
 }
 
+/** Minimal winning path shape used by the machine context. */
 interface WinningPath {
   length: number;
 }
 
+/** XState machine driving the slot UI animation and phase transitions. */
 export const gameMachine = createMachine(
   {
     id: 'game',

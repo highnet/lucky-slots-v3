@@ -24,5 +24,8 @@
     "turbo": "^2.0.0",
     "typescript": "^5.4.0",
     "typescript-eslint": "^8.59.1"
+  },
+  "dependencies": {
+    "js-sha256": "^0.11.1"
   }
 }

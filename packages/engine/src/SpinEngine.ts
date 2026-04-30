@@ -3,7 +3,7 @@
  *
  * Generates the slot machine grid using cryptographically secure randomness.
  *
- * The RNG produces integers in [0, 999) and maps them to symbols via a
+ * The RNG produces integers in (0, 999) and maps them to symbols via a
  * precomputed cumulative-distribution function (CDF). This is faster and
  * more JIT-friendly than a long if-else chain.
  *
@@ -18,16 +18,17 @@ import { GRID_CONFIG } from './config';
 /** Function signature for custom RNGs (useful for deterministic tests). */
 export type RngFunction = () => number;
 
-/** Precomputed CDF for O(1) symbol lookup. */
-const CDF = [
-  { threshold: THRESHOLDS.ten, symbol: Symbol.Ten },
-  { threshold: THRESHOLDS.jack, symbol: Symbol.Jack },
-  { threshold: THRESHOLDS.queen, symbol: Symbol.Queen },
-  { threshold: THRESHOLDS.king, symbol: Symbol.King },
-  { threshold: THRESHOLDS.ace, symbol: Symbol.Ace },
-  { threshold: THRESHOLDS.wild, symbol: Symbol.Wild },
-  { threshold: THRESHOLDS.bonus, symbol: Symbol.Bonus },
-];
+function buildCdf(thresholds: Record<string, number>): { threshold: number; symbol: Symbol }[] {
+  return [
+    { threshold: thresholds.ten, symbol: Symbol.Ten },
+    { threshold: thresholds.jack, symbol: Symbol.Jack },
+    { threshold: thresholds.queen, symbol: Symbol.Queen },
+    { threshold: thresholds.king, symbol: Symbol.King },
+    { threshold: thresholds.ace, symbol: Symbol.Ace },
+    { threshold: thresholds.wild, symbol: Symbol.Wild },
+    { threshold: thresholds.bonus, symbol: Symbol.Bonus },
+  ];
+}
 
 /** Default RNG: uses crypto.getRandomValues when available, falls back to Math.random. */
 function defaultRng(): number {
@@ -39,19 +40,21 @@ function defaultRng(): number {
   return Math.floor(Math.random() * 999);
 }
 
-/** Map a single RNG value [0, 999) to a {@link Symbol} using the CDF. */
-function rngToSymbol(rng: number): Symbol {
-  for (const entry of CDF) {
-    if (rng < entry.threshold) return entry.symbol;
-  }
-  return Symbol.Bonus;
-}
-
 export class SpinEngine {
   private rng: RngFunction;
+  private cdf: { threshold: number; symbol: Symbol }[];
 
-  constructor(rng: RngFunction = defaultRng) {
+  constructor(rng: RngFunction = defaultRng, thresholds?: Record<string, number>) {
     this.rng = rng;
+    this.cdf = buildCdf(thresholds ?? THRESHOLDS);
+  }
+
+  /** Map a single RNG value (0, 999) to a {@link Symbol} using the CDF. */
+  private rngToSymbol(rng: number): Symbol {
+    for (const entry of this.cdf) {
+      if (rng < entry.threshold) return entry.symbol;
+    }
+    return Symbol.Bonus;
   }
 
   /**
@@ -64,7 +67,7 @@ export class SpinEngine {
     for (let row = 0; row < NUM_ROWS; row++) {
       symbols[row] = [];
       for (let col = 0; col < NUM_REELS; col++) {
-        symbols[row][col] = rngToSymbol(this.rng());
+        symbols[row][col] = this.rngToSymbol(this.rng());
       }
     }
     return symbols;
@@ -73,7 +76,7 @@ export class SpinEngine {
   /**
    * Expand wild symbols into N separate grids.
    *
-   * For each payline symbol (Ten→Ace), creates a copy of the grid where
+   * For each payline symbol, creates a copy of the grid where
    * every {@link Symbol.Wild} is replaced by that symbol. This lets the
    * payout engine test each substitution independently.
    *

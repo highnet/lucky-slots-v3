@@ -1,3 +1,15 @@
+/**
+ * @fileoverview nuxt.config.ts
+ *
+ * Nuxt 3 configuration for the Lucky Slots web frontend.
+ *
+ * Key settings:
+ *   - Pinia module for state management
+ *   - Transpilation of workspace packages (`@lucky-slots/engine`, `@lucky-slots/state-machine`)
+ *   - TailwindCSS + Autoprefixer via PostCSS
+ *   - Vite optimisation for `three` (used by TresJS)
+ */
+
 import type { NuxtConfig } from 'nuxt/schema';
 
 const config: NuxtConfig = {

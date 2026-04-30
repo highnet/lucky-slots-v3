@@ -1,3 +1,4 @@
+<!-- Displays the player's current bet amount (prefers auth store, falls back to game store). -->
 <template>
   <div class="bg-slate-800/80 backdrop-blur-sm px-6 py-3 rounded-xl border border-slate-700">
     <div class="text-xs text-slate-400 uppercase tracking-wider">Bet</div>

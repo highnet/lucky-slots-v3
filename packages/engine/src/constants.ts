@@ -194,6 +194,45 @@ export const REEL_STRIPS: string[][] = [
     'ACE','TEN','QUEEN','TEN','TEN','ACE','QUEEN','ACE','ACE','TEN',
     'ACE','QUEEN','TEN','TEN','TEN','TEN','JACK','JACK','KING','KING',
     'TEN','KING','KING','TEN','QUEEN','TEN','TEN','TEN','KING','TEN'
+  ],
+  // Reel 4
+  [
+    'QUEEN','QUEEN','TEN','QUEEN','JACK','QUEEN','KING','TEN','JACK','TEN',
+    'QUEEN','TEN','ACE','TEN','TEN','TEN','TEN','TEN','QUEEN','TEN',
+    'TEN','KING','KING','WILD','TEN','TEN','TEN','QUEEN','KING','TEN',
+    'KING','QUEEN','KING','JACK','TEN','QUEEN','TEN','QUEEN','TEN','KING',
+    'QUEEN','TEN','KING','QUEEN','QUEEN','QUEEN','QUEEN','ACE','JACK','TEN',
+    'TEN','JACK','TEN','TEN','TEN','TEN','KING','TEN','TEN','TEN',
+    'TEN','TEN','TEN','TEN','JACK','TEN','TEN','QUEEN','ACE','QUEEN',
+    'KING','ACE','TEN','ACE','JACK','ACE','QUEEN','TEN','KING','ACE',
+    'WILD','TEN','TEN','TEN','QUEEN','KING','JACK','TEN','TEN','TEN',
+    'TEN','JACK','JACK','TEN','KING','ACE','QUEEN','BONUS','ACE','TEN'
+  ],
+  // Reel 5
+  [
+    'TEN','TEN','JACK','QUEEN','ACE','TEN','KING','QUEEN','QUEEN','KING',
+    'TEN','TEN','QUEEN','KING','QUEEN','ACE','QUEEN','TEN','ACE','TEN',
+    'KING','TEN','TEN','QUEEN','TEN','QUEEN','TEN','TEN','KING','BONUS',
+    'TEN','KING','QUEEN','TEN','TEN','TEN','KING','KING','TEN','ACE',
+    'TEN','TEN','QUEEN','ACE','KING','TEN','TEN','JACK','JACK','QUEEN',
+    'TEN','TEN','QUEEN','TEN','KING','JACK','TEN','TEN','TEN','ACE',
+    'JACK','TEN','JACK','QUEEN','KING','QUEEN','TEN','QUEEN','TEN','KING',
+    'TEN','ACE','WILD','WILD','TEN','QUEEN','QUEEN','TEN','JACK','TEN',
+    'ACE','JACK','TEN','QUEEN','TEN','TEN','JACK','TEN','KING','QUEEN',
+    'ACE','TEN','TEN','TEN','TEN','JACK','TEN','QUEEN','TEN','TEN'
+  ],
+  // Reel 6
+  [
+    'ACE','ACE','WILD','TEN','KING','TEN','QUEEN','ACE','ACE','TEN',
+    'KING','KING','TEN','TEN','JACK','TEN','TEN','QUEEN','TEN','WILD',
+    'KING','TEN','TEN','TEN','QUEEN','QUEEN','TEN','BONUS','KING','QUEEN',
+    'TEN','TEN','JACK','TEN','TEN','TEN','QUEEN','KING','QUEEN','TEN',
+    'QUEEN','JACK','JACK','TEN','QUEEN','TEN','TEN','TEN','QUEEN','KING',
+    'TEN','TEN','KING','TEN','QUEEN','QUEEN','QUEEN','QUEEN','QUEEN','ACE',
+    'TEN','TEN','TEN','JACK','ACE','QUEEN','TEN','TEN','ACE','KING',
+    'QUEEN','TEN','KING','TEN','QUEEN','QUEEN','QUEEN','ACE','TEN','JACK',
+    'TEN','TEN','TEN','JACK','KING','TEN','JACK','TEN','TEN','TEN',
+    'ACE','KING','KING','TEN','TEN','TEN','JACK','JACK','TEN','TEN'
   ]
 ];
 // </AUTO-GENERATED-REEL-STRIPS>

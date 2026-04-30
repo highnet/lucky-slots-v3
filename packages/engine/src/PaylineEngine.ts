@@ -109,9 +109,9 @@ const pathCache = new Map<string, PaylinePath[]>();
  * Defaults to the current {@link GRID_CONFIG}.
  */
 export function getPaylinePaths(
-  rows = GRID_CONFIG.rows,
-  cols = GRID_CONFIG.cols,
-  minMatch = GRID_CONFIG.minMatch
+  rows: number = GRID_CONFIG.rows,
+  cols: number = GRID_CONFIG.cols,
+  minMatch: number = GRID_CONFIG.minMatch
 ): PaylinePath[] {
   const cacheKey = `${rows}x${cols}x${minMatch}`;
   if (pathCache.has(cacheKey)) {
@@ -157,7 +157,7 @@ export function clearPaylineCache(): void {
 export class PaylineEngine {
   private paths: PaylinePath[];
 
-  constructor(rows = GRID_CONFIG.rows, cols = GRID_CONFIG.cols, minMatch = GRID_CONFIG.minMatch) {
+  constructor(rows: number = GRID_CONFIG.rows, cols: number = GRID_CONFIG.cols, minMatch: number = GRID_CONFIG.minMatch) {
     this.paths = getPaylinePaths(rows, cols, minMatch);
   }
 
