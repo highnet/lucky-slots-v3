@@ -86,17 +86,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useAuthStore } from '~/stores/auth';
-
-const GRAPHQL_EMOJIS: Record<string, string> = {
-  TEN: '🔟',
-  JACK: '👦',
-  QUEEN: '👸',
-  KING: '👑',
-  ACE: '🅰️',
-  WILD: '🃏',
-  BONUS: '🎁',
-};
-const SYMBOL_NAMES = Object.keys(GRAPHQL_EMOJIS);
+import { fetchReelStrips, getReelWindow } from '~/composables/useReelStrips';
 
 const authStore = useAuthStore();
 const { me, logout } = useAuth();
@@ -107,11 +97,11 @@ const anyReelSpinning = ref(false);
 const showingWinnings = ref(false);
 const lastResult = ref<any>(null);
 const history = ref<any[]>([]);
+const reelStrips = ref<string[][]>([]);
 
 // Per-reel spinning state: true = still spinning
 const reelSpinning = ref<boolean[]>([false, false, false, false, false]);
 let spinIntervals: (ReturnType<typeof setInterval> | null)[] = [null, null, null, null, null];
-let currentReelSymbols = ref<string[][]>([]);
 
 onMounted(async () => {
   try {
@@ -121,6 +111,7 @@ onMounted(async () => {
       return;
     }
     history.value = await fetchHistory(50);
+    reelStrips.value = await fetchReelStrips();
   } catch {
     await navigateTo('/login');
   }
@@ -134,9 +125,12 @@ const displayBet = computed(() => {
   return (authStore.user?.currentBet ?? 0.1).toFixed(2);
 });
 
+// Per-reel offsets cycling through the 100-symbol strip
+const reelOffsets = ref<number[]>([0, 0, 0, 0, 0]);
+
 function reelSymbols(col: number): string[] {
   if (reelSpinning.value[col]) {
-    return currentReelSymbols.value[col] ?? Array(4).fill('TEN');
+    return getReelWindow(col, reelOffsets.value[col], reelStrips.value);
   }
   if (lastResult.value?.symbols) {
     return [
@@ -146,7 +140,7 @@ function reelSymbols(col: number): string[] {
       lastResult.value.symbols[3][col],
     ];
   }
-  return Array(4).fill('TEN');
+  return getReelWindow(col, 0, reelStrips.value);
 }
 
 function reelWinnerFlags(col: number): boolean[] {
@@ -164,13 +158,12 @@ function reelWinnerFlags(col: number): boolean[] {
 
 function startReelSpin(col: number) {
   reelSpinning.value[col] = true;
-  // Rapidly cycle random symbols for this reel
+  // Start at a random offset so spins don't look identical
+  reelOffsets.value[col] = Math.floor(Math.random() * 100);
+  // Advance through the strip rapidly (each tick moves down ~3-5 symbols)
   spinIntervals[col] = setInterval(() => {
-    const newCol = Array.from({ length: 4 }, () => SYMBOL_NAMES[Math.floor(Math.random() * SYMBOL_NAMES.length)]);
-    const next = [...currentReelSymbols.value];
-    next[col] = newCol;
-    currentReelSymbols.value = next;
-  }, 60);
+    reelOffsets.value[col] = (reelOffsets.value[col] + 3) % 100;
+  }, 40);
 }
 
 function stopReelSpin(col: number) {

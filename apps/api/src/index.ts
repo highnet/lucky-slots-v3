@@ -8,8 +8,18 @@ import { createSchema } from './schema';
 import { authResolvers } from './resolvers/auth';
 import { spinResolvers } from './resolvers/spin';
 
-function mergeResolvers(...resolversArray: any[]) {
-  const result: any = { Query: {}, Mutation: {}, Subscription: {} };
+function mergeResolvers(
+  ...resolversArray: Array<{
+    Query?: Record<string, unknown>;
+    Mutation?: Record<string, unknown>;
+    Subscription?: Record<string, unknown>;
+  }>
+) {
+  const result: {
+    Query: Record<string, unknown>;
+    Mutation: Record<string, unknown>;
+    Subscription: Record<string, unknown>;
+  } = { Query: {}, Mutation: {}, Subscription: {} };
   for (const resolvers of resolversArray) {
     if (resolvers.Query) Object.assign(result.Query, resolvers.Query);
     if (resolvers.Mutation) Object.assign(result.Mutation, resolvers.Mutation);
@@ -22,7 +32,7 @@ const schema = createSchema(mergeResolvers(authResolvers, spinResolvers));
 
 const yoga = createYoga({
   schema,
-  context: async ({ request, res }: any) => {
+  context: async ({ request, res }: { request: Request; res: unknown }) => {
     const cookie = request.headers.get('cookie') || '';
     const sessionId = cookie
       .split(';')

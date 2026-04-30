@@ -1,5 +1,13 @@
 import { createMachine } from 'xstate';
 
+interface SpinResult {
+  winnings: number;
+}
+
+interface WinningPath {
+  length: number;
+}
+
 export const gameMachine = createMachine(
   {
     id: 'game',
@@ -7,8 +15,8 @@ export const gameMachine = createMachine(
     context: {
       balance: 1000,
       bet: 0.1,
-      spinResult: null as any,
-      winningPaths: [] as any[],
+      spinResult: null as SpinResult | null,
+      winningPaths: [] as WinningPath[],
     },
     states: {
       idle: {

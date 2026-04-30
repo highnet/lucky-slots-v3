@@ -1,4 +1,4 @@
-import { Symbol, type Coordinate, type PaylinePath, type PayoutResult } from './types';
+import { Symbol, type Coordinate, type PayoutResult } from './types';
 import { MULTIPLIERS } from './constants';
 import type { PaylineEngine } from './PaylineEngine';
 

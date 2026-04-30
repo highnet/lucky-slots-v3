@@ -3,7 +3,7 @@ import { useAuthStore } from '~/stores/auth';
 
 const API_URL = 'http://localhost:4000/graphql';
 
-async function graphqlRequest<T>(query: string, variables?: Record<string, any>): Promise<T> {
+async function graphqlRequest<T>(query: string, variables?: Record<string, unknown>): Promise<T> {
   const res = await fetch(API_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -22,7 +22,7 @@ export function useGameState() {
   const authStore = useAuthStore();
 
   async function spin() {
-    const data = await graphqlRequest<{ spin: any }>(`
+    const data = await graphqlRequest<{ spin: unknown }>(`
       mutation {
         spin {
           id
@@ -46,7 +46,7 @@ export function useGameState() {
   }
 
   async function cycleBet() {
-    const data = await graphqlRequest<{ cycleBet: any }>(`
+    const data = await graphqlRequest<{ cycleBet: unknown }>(`
       mutation {
         cycleBet { id username balance currentBet }
       }
@@ -62,7 +62,7 @@ export function useGameState() {
   }
 
   async function setBet(amount: number) {
-    const data = await graphqlRequest<{ setBet: any }>(`
+    const data = await graphqlRequest<{ setBet: unknown }>(`
       mutation SetBet($amount: Float!) {
         setBet(amount: $amount) { id username balance currentBet }
       }

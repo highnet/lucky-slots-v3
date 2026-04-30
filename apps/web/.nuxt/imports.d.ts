@@ -32,6 +32,7 @@ export { definePageMeta } from '../../../node_modules/.pnpm/nuxt@3.21.4_@parcel+
 export { defineLazyHydrationComponent } from '#app/composables/lazy-hydration';
 export { useAuth } from '../composables/useAuth';
 export { useGameState } from '../composables/useGameState';
+export { fetchReelStrips, getReelWindow } from '../composables/useReelStrips';
 export { useSpinHistory, SpinHistoryEntry } from '../composables/useSpinHistory';
 export { useAuthStore, User } from '../stores/auth';
 export { useGameStore, GamePhase, SpinResult } from '../stores/game';

@@ -1,6 +1,6 @@
 {
-  "pid": 50962,
-  "startedAt": 1777566485991,
+  "pid": 55577,
+  "startedAt": 1777572452831,
   "command": "dev",
   "cwd": "/Users/joaquintelleria/lucky-slots-v3/apps/web",
   "port": 3000,

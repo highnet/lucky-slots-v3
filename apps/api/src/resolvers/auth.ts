@@ -6,7 +6,7 @@ import { createSession, deleteSession } from '../lib/session';
 import { GraphQLError } from 'graphql';
 import type { Context } from '../context';
 
-function setCookie(res: any, sessionId: string | null) {
+function setCookie(res: { setHeader(name: string, value: string): void }, sessionId: string | null) {
   if (sessionId) {
     res.setHeader(
       'Set-Cookie',
@@ -22,7 +22,7 @@ function setCookie(res: any, sessionId: string | null) {
 
 export const authResolvers = {
   Query: {
-    me: async (_parent: any, _args: any, ctx: Context) => {
+    me: async (_parent: unknown, _args: unknown, ctx: Context) => {
       if (!ctx.session) return null;
       const user = await db.query.users.findFirst({
         where: eq(users.id, ctx.session.userId),
@@ -31,7 +31,7 @@ export const authResolvers = {
     },
   },
   Mutation: {
-    register: async (_parent: any, args: { username: string; password: string }, ctx: Context) => {
+    register: async (_parent: unknown, args: { username: string; password: string }, ctx: Context) => {
       const { username, password } = args;
       if (password.length < 8 || !/[a-zA-Z]/.test(password) || !/[0-9]/.test(password)) {
         throw new GraphQLError('Password must contain at least one letter and one number', {
@@ -60,7 +60,7 @@ export const authResolvers = {
       setCookie(ctx.res, sessionId);
       return user;
     },
-    login: async (_parent: any, args: { username: string; password: string }, ctx: Context) => {
+    login: async (_parent: unknown, args: { username: string; password: string }, ctx: Context) => {
       const user = await db.query.users.findFirst({
         where: eq(users.username, args.username.toLowerCase()),
       });
@@ -79,7 +79,7 @@ export const authResolvers = {
       setCookie(ctx.res, sessionId);
       return user;
     },
-    logout: async (_parent: any, _args: any, ctx: Context) => {
+    logout: async (_parent: unknown, _args: unknown, ctx: Context) => {
       if (ctx.sessionId) {
         await deleteSession(ctx.sessionId);
       }

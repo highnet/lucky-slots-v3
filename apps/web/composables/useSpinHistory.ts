@@ -1,8 +1,6 @@
-import { useAuthStore } from '~/stores/auth';
-
 const API_URL = 'http://localhost:4000/graphql';
 
-async function graphqlRequest<T>(query: string, variables?: Record<string, any>): Promise<T> {
+async function graphqlRequest<T>(query: string, variables?: Record<string, unknown>): Promise<T> {
   const res = await fetch(API_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -25,10 +23,8 @@ export interface SpinHistoryEntry {
 }
 
 export function useSpinHistory() {
-  const authStore = useAuthStore();
-
   async function fetchHistory(limit = 50): Promise<SpinHistoryEntry[]> {
-    const data = await graphqlRequest<{ mySpins: any[] }>(`
+    const data = await graphqlRequest<{ mySpins: unknown[] }>(`
       query {
         mySpins(limit: ${limit}) {
           id

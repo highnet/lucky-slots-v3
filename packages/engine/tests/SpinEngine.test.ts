@@ -34,8 +34,7 @@ describe('SpinEngine', () => {
   });
 
   it('replaces wilds correctly', () => {
-    const engine = new SpinEngine(() => 990); // Always Bonus
-    // Actually 990 gives Bonus. To get Wild, need 970..989
+    // 990 gives Bonus. To get Wild, need 970..989
     const wildEngine = new SpinEngine(() => 980); // Always Wild
     const result = wildEngine.spin();
     expect(result.symbols.every((row) => row.every((s) => s === Symbol.Wild))).toBe(true);

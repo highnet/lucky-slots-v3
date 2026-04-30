@@ -27,9 +27,11 @@ declare global {
   const defineStore: typeof import('../../../../node_modules/.pnpm/@pinia+nuxt@0.5.5_magicast@0.5.2_typescript@5.9.3_vue@3.5.33_typescript@5.9.3_/node_modules/@pinia/nuxt/dist/runtime/composables').defineStore
   const effect: typeof import('../../../../node_modules/.pnpm/vue@3.5.33_typescript@5.9.3/node_modules/vue').effect
   const effectScope: typeof import('../../../../node_modules/.pnpm/vue@3.5.33_typescript@5.9.3/node_modules/vue').effectScope
+  const fetchReelStrips: typeof import('../../composables/useReelStrips').fetchReelStrips
   const getAppManifest: typeof import('../../../../node_modules/.pnpm/nuxt@3.21.4_@parcel+watcher@2.5.6_@types+node@20.19.39_@vue+compiler-sfc@3.5.33_cac@6.7_772185285ef9222927cfcb560a0ac75f/node_modules/nuxt/dist/app/composables/manifest').getAppManifest
   const getCurrentInstance: typeof import('../../../../node_modules/.pnpm/vue@3.5.33_typescript@5.9.3/node_modules/vue').getCurrentInstance
   const getCurrentScope: typeof import('../../../../node_modules/.pnpm/vue@3.5.33_typescript@5.9.3/node_modules/vue').getCurrentScope
+  const getReelWindow: typeof import('../../composables/useReelStrips').getReelWindow
   const getRouteRules: typeof import('../../../../node_modules/.pnpm/nuxt@3.21.4_@parcel+watcher@2.5.6_@types+node@20.19.39_@vue+compiler-sfc@3.5.33_cac@6.7_772185285ef9222927cfcb560a0ac75f/node_modules/nuxt/dist/app/composables/manifest').getRouteRules
   const h: typeof import('../../../../node_modules/.pnpm/vue@3.5.33_typescript@5.9.3/node_modules/vue').h
   const hasInjectionContext: typeof import('../../../../node_modules/.pnpm/vue@3.5.33_typescript@5.9.3/node_modules/vue').hasInjectionContext
@@ -238,9 +240,11 @@ declare module 'vue' {
     readonly defineStore: UnwrapRef<typeof import('../../../../node_modules/.pnpm/@pinia+nuxt@0.5.5_magicast@0.5.2_typescript@5.9.3_vue@3.5.33_typescript@5.9.3_/node_modules/@pinia/nuxt/dist/runtime/composables')['defineStore']>
     readonly effect: UnwrapRef<typeof import('../../../../node_modules/.pnpm/vue@3.5.33_typescript@5.9.3/node_modules/vue')['effect']>
     readonly effectScope: UnwrapRef<typeof import('../../../../node_modules/.pnpm/vue@3.5.33_typescript@5.9.3/node_modules/vue')['effectScope']>
+    readonly fetchReelStrips: UnwrapRef<typeof import('../../composables/useReelStrips')['fetchReelStrips']>
     readonly getAppManifest: UnwrapRef<typeof import('../../../../node_modules/.pnpm/nuxt@3.21.4_@parcel+watcher@2.5.6_@types+node@20.19.39_@vue+compiler-sfc@3.5.33_cac@6.7_772185285ef9222927cfcb560a0ac75f/node_modules/nuxt/dist/app/composables/manifest')['getAppManifest']>
     readonly getCurrentInstance: UnwrapRef<typeof import('../../../../node_modules/.pnpm/vue@3.5.33_typescript@5.9.3/node_modules/vue')['getCurrentInstance']>
     readonly getCurrentScope: UnwrapRef<typeof import('../../../../node_modules/.pnpm/vue@3.5.33_typescript@5.9.3/node_modules/vue')['getCurrentScope']>
+    readonly getReelWindow: UnwrapRef<typeof import('../../composables/useReelStrips')['getReelWindow']>
     readonly getRouteRules: UnwrapRef<typeof import('../../../../node_modules/.pnpm/nuxt@3.21.4_@parcel+watcher@2.5.6_@types+node@20.19.39_@vue+compiler-sfc@3.5.33_cac@6.7_772185285ef9222927cfcb560a0ac75f/node_modules/nuxt/dist/app/composables/manifest')['getRouteRules']>
     readonly h: UnwrapRef<typeof import('../../../../node_modules/.pnpm/vue@3.5.33_typescript@5.9.3/node_modules/vue')['h']>
     readonly hasInjectionContext: UnwrapRef<typeof import('../../../../node_modules/.pnpm/vue@3.5.33_typescript@5.9.3/node_modules/vue')['hasInjectionContext']>

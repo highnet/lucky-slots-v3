@@ -3,7 +3,7 @@ import { redis } from '../datasources/redis';
 import { users, spins } from '../db/schema';
 import { eq, desc } from 'drizzle-orm';
 import { GraphQLError } from 'graphql';
-import { SpinEngine, PaylineEngine, PayoutEngine, BET_AMOUNTS, symbolsToGraphQL } from '@lucky-slots/engine';
+import { SpinEngine, PaylineEngine, PayoutEngine, BET_AMOUNTS, symbolsToGraphQL, REEL_STRIPS } from '@lucky-slots/engine';
 import { randomFillSync } from 'crypto';
 import type { Context } from '../context';
 
@@ -28,7 +28,7 @@ async function checkRateLimit(key: string, max: number, windowSeconds: number): 
 
 export const spinResolvers = {
   Query: {
-    mySpins: async (_parent: any, args: { limit?: number; offset?: number }, ctx: Context) => {
+    mySpins: async (_parent: unknown, args: { limit?: number; offset?: number }, ctx: Context) => {
       if (!ctx.session) {
         throw new GraphQLError('Not authenticated', { extensions: { code: 'UNAUTHENTICATED' } });
       }
@@ -38,12 +38,19 @@ export const spinResolvers = {
         limit: args.limit ?? 20,
         offset: args.offset ?? 0,
       });
-      return results.map((s: any) => ({
+      return results.map((s: {
+        id: string;
+        symbols: unknown;
+        multiplier: string;
+        winnings: string;
+        bet: string;
+        createdAt: Date | null;
+      }) => ({
         id: s.id,
         symbols: Array.isArray(s.symbols)
-          ? s.symbols.map((row: any) =>
+          ? s.symbols.map((row: unknown) =>
               Array.isArray(row)
-                ? row.map((val: any) =>
+                ? row.map((val: unknown) =>
                     typeof val === 'number' ? GRAPHQL_SYMBOL_NAMES[val] : val
                   )
                 : row
@@ -69,9 +76,10 @@ export const spinResolvers = {
       }
       return results;
     },
+    reelStrips: () => REEL_STRIPS,
   },
   Mutation: {
-    spin: async (_parent: any, _args: any, ctx: Context) => {
+    spin: async (_parent: unknown, _args: unknown, ctx: Context) => {
       if (!ctx.session) {
         throw new GraphQLError('Not authenticated', { extensions: { code: 'UNAUTHENTICATED' } });
       }
@@ -101,7 +109,7 @@ export const spinResolvers = {
         .insert(spins)
         .values({
           userId: user.id,
-          symbols: spinResult.symbols as any,
+          symbols: spinResult.symbols as unknown,
           bet: bet.toFixed(2),
           multiplier: payout.multiplier.toFixed(4),
           winnings: payout.winnings.toFixed(2),
@@ -123,7 +131,7 @@ export const spinResolvers = {
         timestamp: spinRecord.createdAt?.toISOString() ?? new Date().toISOString(),
       };
     },
-    setBet: async (_parent: any, args: { amount: number }, ctx: Context) => {
+    setBet: async (_parent: unknown, args: { amount: number }, ctx: Context) => {
       if (!ctx.session) {
         throw new GraphQLError('Not authenticated', { extensions: { code: 'UNAUTHENTICATED' } });
       }
@@ -134,7 +142,7 @@ export const spinResolvers = {
         .returning();
       return user;
     },
-    cycleBet: async (_parent: any, _args: any, ctx: Context) => {
+    cycleBet: async (_parent: unknown, _args: unknown, ctx: Context) => {
       if (!ctx.session) {
         throw new GraphQLError('Not authenticated', { extensions: { code: 'UNAUTHENTICATED' } });
       }
@@ -146,7 +154,7 @@ export const spinResolvers = {
       }
       const currentBet = parseFloat(user.currentBet);
       const amounts = [...BET_AMOUNTS];
-      const idx = amounts.indexOf(currentBet as any);
+      const idx = amounts.indexOf(currentBet as (typeof amounts)[number]);
       const nextBet = amounts[(idx + 1) % amounts.length];
       const [updated] = await db
         .update(users)

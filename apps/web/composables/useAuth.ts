@@ -2,7 +2,7 @@ import { useAuthStore } from '~/stores/auth';
 
 const API_URL = 'http://localhost:4000/graphql';
 
-async function graphqlRequest<T>(query: string, variables?: Record<string, any>): Promise<T> {
+async function graphqlRequest<T>(query: string, variables?: Record<string, unknown>): Promise<T> {
   const res = await fetch(API_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -20,7 +20,7 @@ export function useAuth() {
   const authStore = useAuthStore();
 
   async function me() {
-    const data = await graphqlRequest<{ me: any }>(`
+    const data = await graphqlRequest<{ me: unknown }>(`
       query { me { id username balance currentBet } }
     `);
     if (data.me) {
@@ -30,7 +30,7 @@ export function useAuth() {
   }
 
   async function register(username: string, password: string) {
-    const data = await graphqlRequest<{ register: any }>(`
+    const data = await graphqlRequest<{ register: unknown }>(`
       mutation Register($username: String!, $password: String!) {
         register(username: $username, password: $password) {
           id username balance currentBet
@@ -42,7 +42,7 @@ export function useAuth() {
   }
 
   async function login(username: string, password: string) {
-    const data = await graphqlRequest<{ login: any }>(`
+    const data = await graphqlRequest<{ login: unknown }>(`
       mutation Login($username: String!, $password: String!) {
         login(username: $username, password: $password) {
           id username balance currentBet

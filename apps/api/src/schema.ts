@@ -1,5 +1,4 @@
 import { makeExecutableSchema } from '@graphql-tools/schema';
-import type { Context } from './context';
 
 export const typeDefs = /* GraphQL */ `
   enum Symbol {
@@ -51,6 +50,7 @@ export const typeDefs = /* GraphQL */ `
     me: User
     mySpins(limit: Int = 20, offset: Int = 0): [SpinResult!]!
     leaderboard: [LeaderboardEntry!]!
+    reelStrips: [[Symbol!]!]!
   }
 
   type Mutation {
