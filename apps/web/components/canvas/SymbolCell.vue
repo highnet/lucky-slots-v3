@@ -9,15 +9,15 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import { Symbol, SYMBOL_EMOJIS } from '@lucky-slots/engine';
+import { GRAPHQL_EMOJIS } from '@lucky-slots/engine';
 
 const props = defineProps<{
   row: number;
   col: number;
-  symbol: Symbol;
+  symbol: string;
 }>();
 
-const emoji = computed(() => SYMBOL_EMOJIS[props.symbol] ?? '❓');
+const emoji = computed(() => GRAPHQL_EMOJIS[props.symbol] ?? '❓');
 
 const styleObject = computed(() => ({
   left: `${screenX.value}px`,

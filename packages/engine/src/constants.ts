@@ -6,11 +6,9 @@
  * The reel strips match the exact probability distribution of the RNG:
  * Ten=45%, Jack=10%, Queen=20%, King=13%, Ace=9%, Wild=2%, Bonus=1%.
  *
- * To regenerate strips after changing {@link GRID_CONFIG}:
+ * To regenerate strips after changing grid config:
  *   pnpm --filter @lucky-slots/engine update-strips
  */
-
-import { GRID_CONFIG } from './config';
 
 /** RNG threshold boundaries (0–999). A symbol is chosen when rng < its threshold. */
 export const THRESHOLDS = {
@@ -196,32 +194,6 @@ export const REEL_STRIPS: string[][] = [
     'ACE','TEN','QUEEN','TEN','TEN','ACE','QUEEN','ACE','ACE','TEN',
     'ACE','QUEEN','TEN','TEN','TEN','TEN','JACK','JACK','KING','KING',
     'TEN','KING','KING','TEN','QUEEN','TEN','TEN','TEN','KING','TEN'
-  ],
-  // Reel 4
-  [
-    'QUEEN','QUEEN','TEN','QUEEN','JACK','QUEEN','KING','TEN','JACK','TEN',
-    'QUEEN','TEN','ACE','TEN','TEN','TEN','TEN','TEN','QUEEN','TEN',
-    'TEN','KING','KING','WILD','TEN','TEN','TEN','QUEEN','KING','TEN',
-    'KING','QUEEN','KING','JACK','TEN','QUEEN','TEN','QUEEN','TEN','KING',
-    'QUEEN','TEN','KING','QUEEN','QUEEN','QUEEN','QUEEN','ACE','JACK','TEN',
-    'TEN','JACK','TEN','TEN','TEN','TEN','KING','TEN','TEN','TEN',
-    'TEN','TEN','TEN','TEN','JACK','TEN','TEN','QUEEN','ACE','QUEEN',
-    'KING','ACE','TEN','ACE','JACK','ACE','QUEEN','TEN','KING','ACE',
-    'WILD','TEN','TEN','TEN','QUEEN','KING','JACK','TEN','TEN','TEN',
-    'TEN','JACK','JACK','TEN','KING','ACE','QUEEN','BONUS','ACE','TEN'
-  ],
-  // Reel 5
-  [
-    'TEN','TEN','JACK','QUEEN','ACE','TEN','KING','QUEEN','QUEEN','KING',
-    'TEN','TEN','QUEEN','KING','QUEEN','ACE','QUEEN','TEN','ACE','TEN',
-    'KING','TEN','TEN','QUEEN','TEN','QUEEN','TEN','TEN','KING','BONUS',
-    'TEN','KING','QUEEN','TEN','TEN','TEN','KING','KING','TEN','ACE',
-    'TEN','TEN','QUEEN','ACE','KING','TEN','TEN','JACK','JACK','QUEEN',
-    'TEN','TEN','QUEEN','TEN','KING','JACK','TEN','TEN','TEN','ACE',
-    'JACK','TEN','JACK','QUEEN','KING','QUEEN','TEN','QUEEN','TEN','KING',
-    'TEN','ACE','WILD','WILD','TEN','QUEEN','QUEEN','TEN','JACK','TEN',
-    'ACE','JACK','TEN','QUEEN','TEN','TEN','JACK','TEN','KING','QUEEN',
-    'ACE','TEN','TEN','TEN','TEN','JACK','TEN','QUEEN','TEN','TEN'
   ]
 ];
 // </AUTO-GENERATED-REEL-STRIPS>

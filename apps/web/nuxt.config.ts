@@ -1,4 +1,6 @@
-export default defineNuxtConfig({
+import type { NuxtConfig } from 'nuxt/schema';
+
+const config: NuxtConfig = {
   compatibilityDate: '2026-04-30',
   devtools: { enabled: true },
   modules: ['@pinia/nuxt'],
@@ -25,4 +27,6 @@ export default defineNuxtConfig({
       autoprefixer: {},
     },
   },
-});
+};
+
+export default defineNuxtConfig(config) as NuxtConfig;

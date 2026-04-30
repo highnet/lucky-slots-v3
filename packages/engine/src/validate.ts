@@ -9,7 +9,7 @@
  */
 
 import { GRID_CONFIG } from './config';
-import { Symbol, GRAPHQL_SYMBOL_NAMES, NUM_ROWS, NUM_REELS, NUM_SYMBOLS } from './types';
+import { Symbol, GRAPHQL_SYMBOL_NAMES, NUM_REELS, NUM_SYMBOLS } from './types';
 import { REEL_STRIPS, THRESHOLDS, MULTIPLIERS, getMultiplier, BET_AMOUNTS, DEFAULT_BALANCE, DEFAULT_BET } from './constants';
 
 class EngineFatalError extends Error {
@@ -53,7 +53,7 @@ function validateGridConfig(): void {
 
 function validateSymbolEnum(): void {
   const enumKeys = Object.keys(Symbol).filter((k) => isNaN(Number(k)));
-  const enumValues = enumKeys.map((k) => (Symbol as any)[k]).filter((v) => typeof v === 'number');
+  const enumValues = enumKeys.map((k) => (Symbol as Record<string, unknown>)[k]).filter((v): v is number => typeof v === 'number');
 
   assert(enumValues.length === NUM_SYMBOLS,
     `Symbol enum has ${enumValues.length} numeric entries but GRID_CONFIG.numSymbols is ${NUM_SYMBOLS}.`);
@@ -157,7 +157,7 @@ function validateBetConfig(): void {
 
   assert(typeof DEFAULT_BALANCE === 'number' && DEFAULT_BALANCE > 0,
     `DEFAULT_BALANCE must be positive, got ${DEFAULT_BALANCE}.`);
-  assert(typeof DEFAULT_BET === 'number' && DEFAULT_BET > 0 && BET_AMOUNTS.includes(DEFAULT_BET as any),
+  assert(typeof DEFAULT_BET === 'number' && DEFAULT_BET > 0 && BET_AMOUNTS.includes(DEFAULT_BET),
     `DEFAULT_BET (${DEFAULT_BET}) must be one of the allowed BET_AMOUNTS.`);
 }
 

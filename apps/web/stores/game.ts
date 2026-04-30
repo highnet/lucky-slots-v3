@@ -11,12 +11,14 @@ export type GamePhase =
   | 'resetting';
 
 export interface SpinResult {
+  id: string;
   symbols: string[][];
   winningPaths: { symbol: string; size: number; coordinates: { row: number; col: number }[] }[];
   multiplier: number;
   winnings: number;
   bet: number;
-  newBalance: number;
+  newBalance?: number;
+  timestamp: string;
 }
 
 export const useGameStore = defineStore('game', {
@@ -42,7 +44,7 @@ export const useGameStore = defineStore('game', {
     setLastSpin(result: SpinResult | null) {
       this.lastSpin = result;
       if (result) {
-        this.balance = result.newBalance;
+        this.balance = result.newBalance ?? this.balance;
         this.winningPaths = result.winningPaths;
       }
     },

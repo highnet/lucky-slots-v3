@@ -1,7 +1,6 @@
 {
-  "extends": "@lucky-slots/ts-config/nuxt.json",
+  "extends": ["@lucky-slots/ts-config/nuxt.json", "./.nuxt/tsconfig.json"],
   "compilerOptions": {
     "outDir": "./.nuxt"
-  },
-  "include": ["./**/*"]
+  }
 }

@@ -91,6 +91,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useAuthStore } from '~/stores/auth';
+import type { SpinResult } from '~/stores/game';
 import { fetchGridConfig, fetchReelStrips, getReelWindow } from '~/composables/useReelStrips';
 import type { GridConfig } from '~/composables/useReelStrips';
 
@@ -101,8 +102,8 @@ const { fetchHistory } = useSpinHistory();
 
 const anyReelSpinning = ref(false);
 const showingWinnings = ref(false);
-const lastResult = ref<any>(null);
-const history = ref<any[]>([]);
+const lastResult = ref<SpinResult | null>(null);
+const history = ref<SpinResult[]>([]);
 const reelStrips = ref<string[][]>([]);
 const gridConfig = ref<GridConfig>({
   rows: 4,
@@ -228,6 +229,7 @@ async function handleSpin() {
       winnings: result.winnings,
       multiplier: result.multiplier,
       timestamp: result.timestamp ?? new Date().toISOString(),
+      newBalance: result.newBalance,
       symbols: result.symbols ?? [],
       winningPaths: result.winningPaths ?? [],
     });
@@ -243,15 +245,16 @@ async function handleSpin() {
         anyReelSpinning.value = false;
       }, 600);
     }
-  } catch (e: any) {
+  } catch (e: unknown) {
     for (let col = 0; col < gridConfig.value.cols; col++) {
       stopReelSpin(col);
     }
     anyReelSpinning.value = false;
-    if (e.message?.includes('authenticated')) {
+    const err = e instanceof Error ? e : new Error(String(e));
+    if (err.message.includes('authenticated')) {
       await navigateTo('/login');
     } else {
-      alert(e.message);
+      alert(err.message);
     }
   }
 }
@@ -261,11 +264,12 @@ async function handleCycleBet() {
   try {
     const result = await cycleBet();
     if (authStore.user) {
-      authStore.user.currentBet = parseFloat(result.currentBet);
-      authStore.user.balance = parseFloat(result.balance);
+      authStore.user.currentBet = parseFloat(String(result.currentBet));
+      authStore.user.balance = parseFloat(String(result.balance));
     }
-  } catch (e: any) {
-    alert(e.message);
+  } catch (e: unknown) {
+    const err = e instanceof Error ? e : new Error(String(e));
+    alert(err.message);
   }
 }
 

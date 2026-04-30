@@ -20,6 +20,7 @@ export interface SpinHistoryEntry {
   winnings: number;
   multiplier: number;
   timestamp: string;
+  newBalance?: number;
   symbols: string[][];
   winningPaths: {
     symbol: string;
@@ -38,6 +39,7 @@ export function useSpinHistory() {
           winnings
           multiplier
           timestamp
+          newBalance
           symbols
           winningPaths {
             symbol
@@ -50,15 +52,19 @@ export function useSpinHistory() {
         }
       }
     `);
-    return data.mySpins.map((s: any) => ({
-      id: s.id,
-      bet: s.bet,
-      winnings: s.winnings,
-      multiplier: s.multiplier,
-      timestamp: s.timestamp,
-      symbols: Array.isArray(s.symbols) ? s.symbols : [],
-      winningPaths: Array.isArray(s.winningPaths) ? s.winningPaths : [],
-    }));
+    return data.mySpins.map((s: unknown) => {
+      const entry = s as Record<string, unknown>;
+      return {
+        id: String(entry.id ?? ''),
+        bet: Number(entry.bet ?? 0),
+        winnings: Number(entry.winnings ?? 0),
+        multiplier: Number(entry.multiplier ?? 0),
+        timestamp: String(entry.timestamp ?? ''),
+        newBalance: entry.newBalance !== undefined ? Number(entry.newBalance) : undefined,
+        symbols: Array.isArray(entry.symbols) ? (entry.symbols as string[][]) : [],
+        winningPaths: Array.isArray(entry.winningPaths) ? (entry.winningPaths as SpinHistoryEntry['winningPaths']) : [],
+      };
+    });
   }
 
   return { fetchHistory };

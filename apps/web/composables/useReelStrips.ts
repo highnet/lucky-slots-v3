@@ -50,7 +50,7 @@ export function getReelWindow(
   reelIndex: number,
   offset: number,
   strips: string[][],
-  rowCount = GRID_CONFIG.rows
+  rowCount: number = GRID_CONFIG.rows
 ): string[] {
   const strip = strips[reelIndex];
   if (!strip) {

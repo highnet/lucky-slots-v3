@@ -1,5 +1,7 @@
 import { useGameStore } from '~/stores/game';
 import { useAuthStore } from '~/stores/auth';
+import type { SpinResult } from '~/stores/game';
+import type { User } from '~/stores/auth';
 
 const API_URL = 'http://localhost:4000/graphql';
 
@@ -22,7 +24,7 @@ export function useGameState() {
   const authStore = useAuthStore();
 
   async function spin() {
-    const data = await graphqlRequest<{ spin: unknown }>(`
+    const data = await graphqlRequest<{ spin: SpinResult }>(`
       mutation {
         spin {
           id
@@ -46,32 +48,32 @@ export function useGameState() {
   }
 
   async function cycleBet() {
-    const data = await graphqlRequest<{ cycleBet: unknown }>(`
+    const data = await graphqlRequest<{ cycleBet: User }>(`
       mutation {
         cycleBet { id username balance currentBet }
       }
     `);
     const result = data.cycleBet;
-    gameStore.setBet(parseFloat(result.currentBet));
+    gameStore.setBet(parseFloat(String(result.currentBet)));
     // Update auth store so header display reflects new bet
     if (authStore.user) {
-      authStore.user.currentBet = parseFloat(result.currentBet);
-      authStore.user.balance = parseFloat(result.balance);
+      authStore.user.currentBet = parseFloat(String(result.currentBet));
+      authStore.user.balance = parseFloat(String(result.balance));
     }
     return result;
   }
 
   async function setBet(amount: number) {
-    const data = await graphqlRequest<{ setBet: unknown }>(`
+    const data = await graphqlRequest<{ setBet: User }>(`
       mutation SetBet($amount: Float!) {
         setBet(amount: $amount) { id username balance currentBet }
       }
     `, { amount });
     const result = data.setBet;
-    gameStore.setBet(parseFloat(result.currentBet));
+    gameStore.setBet(parseFloat(String(result.currentBet)));
     if (authStore.user) {
-      authStore.user.currentBet = parseFloat(result.currentBet);
-      authStore.user.balance = parseFloat(result.balance);
+      authStore.user.currentBet = parseFloat(String(result.currentBet));
+      authStore.user.balance = parseFloat(String(result.balance));
     }
     return result;
   }

@@ -22,7 +22,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useGameStore } from '~/stores/game';
-import { Symbol } from '@lucky-slots/engine';
 
 const gameStore = useGameStore();
 
@@ -45,13 +44,13 @@ const gridCells = computed(() => {
 
 const symbolCells = computed(() => {
   const symbols = gameStore.lastSpin?.symbols;
-  const cells: { row: number; col: number; symbol: Symbol }[] = [];
+  const cells: { row: number; col: number; symbol: string }[] = [];
   for (let row = 0; row < 4; row++) {
     for (let col = 0; col < 5; col++) {
       cells.push({
         row,
         col,
-        symbol: symbols ? symbols[row][col] : Symbol.Ten,
+        symbol: symbols ? symbols[row][col] : 'TEN',
       });
     }
   }
