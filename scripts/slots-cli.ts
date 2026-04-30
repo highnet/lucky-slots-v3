@@ -44,6 +44,36 @@ function parseConfig(): GridConfig {
   return config;
 }
 
+function parseThresholds(): Record<string, number> {
+  const content = readFileSync(CONSTANTS_PATH, 'utf-8');
+  const match = content.match(/export const THRESHOLDS = \{([\s\S]*?)\} as const;/);
+  if (!match) return {};
+  const thresholds: Record<string, number> = {};
+  const lines = match[1].split('\n');
+  for (const line of lines) {
+    const m = line.match(/^[ \t]*(\w+):[ \t]*(\d+)/);
+    if (m) {
+      thresholds[m[1]] = parseInt(m[2], 10);
+    }
+  }
+  return thresholds;
+}
+
+function parseMultipliers(): Record<string, number> {
+  const content = readFileSync(CONSTANTS_PATH, 'utf-8');
+  const match = content.match(/const HARDCODED_MULTIPLIERS: Record<string, number> = \{([\s\S]*?)\};/);
+  if (!match) return {};
+  const multipliers: Record<string, number> = {};
+  const lines = match[1].split('\n');
+  for (const line of lines) {
+    const m = line.match(/^[ \t]*'([^']+)':[ \t]*([0-9.]+)/);
+    if (m) {
+      multipliers[m[1]] = parseFloat(m[2]);
+    }
+  }
+  return multipliers;
+}
+
 function writeConfig(updates: Partial<GridConfig>): void {
   const lines = readFileSync(CONFIG_PATH, 'utf-8').split('\n');
   const out: string[] = [];
@@ -214,13 +244,16 @@ async function menuAnalyzeRTP(): Promise<void> {
   console.log(`\n  Running Monte Carlo simulation (${simResponse.spins.toLocaleString()} spins)...`);
   console.log(`  Grid: ${config.rows}×${config.cols}, minMatch=${config.minMatch}\n`);
 
+  const thresholds = parseThresholds();
+  const multipliers = parseMultipliers();
+
   const sim = new RTPSimulator({
     rows: config.rows,
     cols: config.cols,
     minMatch: config.minMatch,
     paylineSymbols: config.paylineSymbols,
-    thresholds: { ten: 450, jack: 550, queen: 750, king: 880, ace: 970, wild: 990, bonus: 999 },
-    multipliers: {},
+    thresholds,
+    multipliers,
   });
 
   const result = sim.run(simResponse.spins, 1.0, Date.now());
