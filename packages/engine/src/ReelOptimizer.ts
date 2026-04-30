@@ -18,7 +18,7 @@
  * Usage:
  *   import { ReelOptimizer } from './ReelOptimizer';
  *   const result = ReelOptimizer.optimize({
- *     targetRTP: 96,
+ *     targetRTP: 95,
  *     targetHitRate: 0.12,
  *     baseMultipliers: { '3 Ten': 0.25, '4 Ten': 1, ... },
  *   });
@@ -100,11 +100,11 @@ function simulateStrips(
   spins: number,
   seed: number,
   paylineEngine: PaylineEngine,
-  payoutEngine: PayoutEngine
+  rows: number,
+  cols: number
 ): { rtp: number; hitRate: number; avgMultiplier: number; maxMultiplier: number } {
+  const payoutEngine = new PayoutEngine(paylineEngine, multipliers);
   const rand = mulberry32(seed);
-  const cols = strips.length;
-  const rows = strips[0]?.length ?? 0;
   const lens = strips.map((s) => s.length);
 
   let totalWinnings = 0;
@@ -263,6 +263,63 @@ function moveSymbolBetweenReels(strips: string[][], rng: () => number): MoveResu
 }
 
 /**
+ * Aggressively redistribute a symbol: move up to `maxMoves` occurrences
+ * from the reel with the most of that symbol to the reel with the least.
+ * This creates uneven cross-reel densities, which drastically lowers
+ * the probability of multi-reel matches.
+ *
+ * When all reels have identical counts (common at start), this forces
+ * an imbalance by picking two *different* reels at random.
+ */
+function redistributeSymbol(strips: string[][], rng: () => number, maxMoves = 35): MoveResult {
+  const cols = strips.length;
+  const paylineSyms = ['TEN', 'JACK', 'QUEEN', 'KING', 'ACE'];
+  const sym = paylineSyms[Math.floor(rng() * paylineSyms.length)];
+
+  // Count per reel
+  const counts = strips.map((s) => s.filter((x) => x === sym).length);
+  const maxCount = Math.max(...counts);
+  const minCount = Math.min(...counts);
+
+  // All indices that have max / min (handles ties)
+  const maxIndices = counts.map((c, i) => (c === maxCount ? i : -1)).filter((i) => i !== -1);
+  const minIndices = counts.map((c, i) => (c === minCount ? i : -1)).filter((i) => i !== -1);
+
+  // Pick max and min reels, ensuring they are different
+  const maxIdx = maxIndices[Math.floor(rng() * maxIndices.length)];
+  let minIdx = minIndices[Math.floor(rng() * minIndices.length)];
+
+  // If all counts are identical, force imbalance: pick any two different reels
+  if (maxIdx === minIdx) {
+    if (cols < 2 || counts[maxIdx] <= 1) {
+      return randomSwapWithinReel(strips, Math.floor(rng() * cols), rng);
+    }
+    // Pick a different reel for minIdx
+    const otherReels = counts.map((_, i) => i).filter((i) => i !== maxIdx);
+    minIdx = otherReels[Math.floor(rng() * otherReels.length)];
+  }
+
+  if (counts[maxIdx] <= 1) {
+    return randomSwapWithinReel(strips, Math.floor(rng() * cols), rng);
+  }
+
+  const next = cloneStrips(strips);
+  let moves = 0;
+  for (let i = 0; i < next[maxIdx].length && moves < maxMoves; i++) {
+    if (next[maxIdx][i] === sym) {
+      // Find a non-sym on minIdx reel
+      const posB = next[minIdx].findIndex((s) => s !== sym);
+      if (posB === -1) break;
+      const other = next[minIdx][posB];
+      next[maxIdx][i] = other;
+      next[minIdx][posB] = sym;
+      moves++;
+    }
+  }
+  return { strips: next, multipliers: {}, type: 'redistribute' };
+}
+
+/**
  * Find a run of identical symbols and break it by swapping the middle
  * element with a distant different symbol.
  */
@@ -333,7 +390,6 @@ export class ReelOptimizer {
 
     const log: string[] = [];
     const paylineEngine = new PaylineEngine(rows, cols, minMatch);
-    const payoutEngineReal = new PayoutEngine(paylineEngine, baseMultipliers);
 
     const rng = mulberry32(12345);
     const evalRng = () => rng();
@@ -369,7 +425,7 @@ export class ReelOptimizer {
     let currentMults = { ...baseMultipliers };
     let bestStrips = currentStrips.map((s) => [...s]);
     let bestStripLoss = Infinity;
-    let bestStripSim = simulateStrips(currentStrips, currentMults, spinsPerEval, 42, paylineEngine, payoutEngineReal);
+    let bestStripSim = simulateStrips(currentStrips, currentMults, spinsPerEval, 42, paylineEngine, rows, cols);
 
     function stripLoss(sim: { rtp: number; hitRate: number; avgMultiplier: number }, strips: string[][]): number {
       const cluster = strips.reduce((sum, s) => sum + clusterPenalty(s), 0);
@@ -391,9 +447,11 @@ export class ReelOptimizer {
 
       const moveRoll = evalRng();
       let proposal: MoveResult;
-      if (moveRoll < 0.45) {
+      if (moveRoll < 0.25) {
+        proposal = redistributeSymbol(currentStrips, evalRng);
+      } else if (moveRoll < 0.55) {
         proposal = moveSymbolBetweenReels(currentStrips, evalRng);
-      } else if (moveRoll < 0.85) {
+      } else if (moveRoll < 0.90) {
         proposal = antiClusterSwap(currentStrips, evalRng);
       } else {
         proposal = {
@@ -403,7 +461,7 @@ export class ReelOptimizer {
         };
       }
 
-      const sim = simulateStrips(proposal.strips, currentMults, spinsPerEval, 100 + iter, paylineEngine, payoutEngineReal);
+      const sim = simulateStrips(proposal.strips, currentMults, spinsPerEval, 100 + iter, paylineEngine, rows, cols);
       const propLoss = stripLoss(sim, proposal.strips);
       const delta = propLoss - currentLoss;
 
@@ -450,18 +508,32 @@ export class ReelOptimizer {
       }
     }
 
-    let multPayoutEngine = new PayoutEngine(paylineEngine, currentMults);
-
     for (let iter = 0; iter < maxIters; iter++) {
       const T = T0 * Math.pow(cooling, iter);
 
-      const key = validKeys[Math.floor(evalRng() * validKeys.length)];
-      const currentVal = currentMults[key] ?? getMultiplier(parseInt(key.split(' ')[0], 10), key.split(' ')[1]);
-      const factor = evalRng() < 0.5 ? 1.2 : 0.85;
-      const nextVal = currentVal * factor;
+      let nextMults: Record<string, number>;
+      let moveType: string;
 
-      const nextMults = { ...currentMults, [key]: nextVal };
-      const sim = simulateStrips(currentStrips, nextMults, spinsPerEval, 200 + iter, paylineEngine, multPayoutEngine);
+      if (evalRng() < 0.40) {
+        // GLOBAL SCALE: scale all multipliers by a common factor
+        const ratio = targetRTP / (bestMultSim.rtp || 1);
+        const noise = 0.85 + 0.30 * evalRng(); // 0.85 – 1.15
+        const scale = Math.max(0.1, Math.min(3.0, ratio * noise));
+        nextMults = {};
+        for (const k of validKeys) {
+          nextMults[k] = (currentMults[k] ?? getMultiplier(parseInt(k.split(' ')[0], 10), k.split(' ')[1])) * scale;
+        }
+        moveType = 'global';
+      } else {
+        // LOCAL TWEAK: adjust one multiplier
+        const key = validKeys[Math.floor(evalRng() * validKeys.length)];
+        const currentVal = currentMults[key] ?? getMultiplier(parseInt(key.split(' ')[0], 10), key.split(' ')[1]);
+        const factor = evalRng() < 0.5 ? 1.15 : 0.85;
+        nextMults = { ...currentMults, [key]: currentVal * factor };
+        moveType = 'local';
+      }
+
+      const sim = simulateStrips(currentStrips, nextMults, spinsPerEval, 200 + iter, paylineEngine, rows, cols);
 
       // Loss: RTP error + heavy penalty for dropping multipliers too low
       const multShortfall = Math.max(0, minAvgMult - sim.avgMultiplier);
@@ -470,7 +542,6 @@ export class ReelOptimizer {
 
       if (delta < 0 || evalRng() < Math.exp(-delta / T)) {
         currentMults = nextMults;
-        multPayoutEngine = new PayoutEngine(paylineEngine, currentMults);
         currentLoss = propLoss;
         if (propLoss < bestMultLoss) {
           bestMultLoss = propLoss;
@@ -482,7 +553,7 @@ export class ReelOptimizer {
       if (iter % 20 === 0 || propLoss < bestMultLoss) {
         log.push(
           `Phase2 Iter ${iter + 1}:  RTP=${sim.rtp.toFixed(2)}%  hitRate=${(sim.hitRate * 100).toFixed(2)}%  ` +
-            `avgMult=${sim.avgMultiplier.toFixed(2)}  loss=${propLoss.toFixed(2)}  T=${T.toFixed(3)}`
+            `avgMult=${sim.avgMultiplier.toFixed(2)}  loss=${propLoss.toFixed(2)}  T=${T.toFixed(3)}  (${moveType})`
         );
       }
     }

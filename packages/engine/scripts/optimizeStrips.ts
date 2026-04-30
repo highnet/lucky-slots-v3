@@ -59,6 +59,20 @@ function stripsToTypeScript(strips: string[][]): string {
   return lines.join('\n');
 }
 
+function parseExistingMultipliers(content: string): Record<string, number> {
+  const match = content.match(/const HARDCODED_MULTIPLIERS: Record<string, number> = \{([\s\S]*?)\};/);
+  if (!match) return {};
+  const existing: Record<string, number> = {};
+  const lines = match[1].split('\n');
+  for (const line of lines) {
+    const m = line.match(/^[ \t]*'([^']+)':[ \t]*([0-9.]+)/);
+    if (m) {
+      existing[m[1]] = parseFloat(m[2]);
+    }
+  }
+  return existing;
+}
+
 function multipliersToTypeScript(multipliers: Record<string, number>): string {
   const entries = Object.entries(multipliers)
     .sort((a, b) => a[0].localeCompare(b[0]))
@@ -67,7 +81,7 @@ function multipliersToTypeScript(multipliers: Record<string, number>): string {
 }
 
 function main() {
-  const targetRTP = parseFloat(process.env.TARGET_RTP ?? '96');
+  const targetRTP = parseFloat(process.env.TARGET_RTP ?? '95');
   const targetHitRate = parseFloat(process.env.TARGET_HITRATE ?? '0.15');
   const iterations = parseInt(process.env.OPT_ITERATIONS ?? '100', 10);
   const spinsPerEval = parseInt(process.env.OPT_SPINS ?? '5000', 10);
@@ -94,9 +108,9 @@ function main() {
     temperature: 2.0,
     coolingRate: 0.985,
     wRtp: 1.0,
-    wHit: 1.5,
-    wCluster: 0.3,
-    wAlign: 0.5,
+    wHit: 10.0,
+    wCluster: 0.01,
+    wAlign: 2.0,
     minAvgMultiplier: 3.0,
   });
 
@@ -149,7 +163,7 @@ function main() {
       content = content.slice(0, s0) + stripsToTypeScript(result.strips) + content.slice(s1 + stripEnd.length);
     }
 
-    // Inject multipliers
+    // Inject multipliers (merge to preserve grid-size entries the optimizer didn't touch)
     const multMarker = 'const HARDCODED_MULTIPLIERS: Record<string, number> = {';
     const multEnd = '};';
     const m0 = content.indexOf(multMarker);
@@ -159,7 +173,8 @@ function main() {
         m1 = content.indexOf(multEnd, m1 + 1);
       }
       if (m1 !== -1) {
-        content = content.slice(0, m0) + multipliersToTypeScript(result.multipliers) + content.slice(m1 + 2);
+        const merged = { ...parseExistingMultipliers(content), ...result.multipliers };
+        content = content.slice(0, m0) + multipliersToTypeScript(merged) + content.slice(m1 + 2);
       }
     }
 

@@ -301,8 +301,8 @@ async function menuOptimizeStrips(): Promise<void> {
     {
       type: 'number',
       name: 'targetRTP',
-      message: 'Target RTP % (e.g. 49 for 49%)',
-      initial: 49,
+      message: 'Target RTP % (e.g. 95 for 95%)',
+      initial: 95,
       min: 1,
       max: 99,
     },

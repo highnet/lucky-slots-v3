@@ -30,7 +30,7 @@ export const GRID_CONFIG = {
   /** Number of columns (reels). */
   cols: 4,
   /** Minimum contiguous symbols required for a payline to count as a match. */
-  minMatch: 3,
+  minMatch: 4,
   /** Total symbol types (Ten, Jack, Queen, King, Ace, Wild). */
   numSymbols: 6,
   /** Size of each reel strip (must be ≥ 1). */
