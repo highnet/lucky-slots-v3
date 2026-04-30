@@ -1,0 +1,17 @@
+{
+  "name": "@lucky-slots/engine",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@lucky-slots/ts-config": "workspace:*",
+    "typescript": "^5.4.0",
+    "vitest": "^1.5.0"
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "@lucky-slots/ts-config",
+  "version": "1.0.0",
+  "private": true,
+  "files": ["base.json", "nuxt.json", "node.json"]
+}

@@ -1,0 +1,7 @@
+{
+  "extends": "@lucky-slots/ts-config/nuxt.json",
+  "compilerOptions": {
+    "outDir": "./.nuxt"
+  },
+  "include": ["./**/*"]
+}
