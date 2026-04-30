@@ -1,9 +1,0 @@
-{
-  "pid": 55577,
-  "startedAt": 1777572452831,
-  "command": "dev",
-  "cwd": "/Users/joaquintelleria/lucky-slots-v3/apps/web",
-  "port": 3000,
-  "hostname": "::1",
-  "url": "http://[::1]:3000"
-}
