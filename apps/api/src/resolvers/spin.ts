@@ -203,7 +203,8 @@ export const spinResolvers = {
         spin.nonce,
         GRID_CONFIG.rows,
         GRID_CONFIG.cols,
-        grid
+        grid,
+        REEL_STRIPS
       );
 
       return {
@@ -258,9 +259,9 @@ export const spinResolvers = {
       const newBalance = balance - bet;
       await db.update(users).set({ balance: newBalance.toFixed(2) }).where(eq(users.id, user.id));
 
-      // Provably fair spin
+      // Provably fair spin (uses reel strips when available)
       const rng = makeProvablyFairRng(serverSeed, clientSeed, nonce);
-      const spinEngine = new SpinEngine(rng);
+      const spinEngine = new SpinEngine(rng, undefined, REEL_STRIPS);
       const spinResult = spinEngine.spin();
       const payout = payoutEngine.calculatePayout(spinResult.symbols, spinResult.wildReplacements, bet);
       const finalBalance = newBalance + payout.winnings;

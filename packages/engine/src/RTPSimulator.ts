@@ -61,8 +61,10 @@ export interface RTPInputConfig {
   cols: number;
   minMatch: number;
   paylineSymbols: number;
-  thresholds: Record<string, number>;
+  thresholds?: Record<string, number>;
   multipliers: Record<string, number>;
+  /** When provided the simulator uses strip-based spins instead of threshold RNG. */
+  reelStrips?: string[][];
 }
 
 export class RTPSimulator {
@@ -75,7 +77,7 @@ export class RTPSimulator {
       cols: GRID_CONFIG.cols,
       minMatch: GRID_CONFIG.minMatch,
       paylineSymbols: GRID_CONFIG.paylineSymbols,
-      thresholds: { ten: 450, jack: 550, queen: 750, king: 880, ace: 970, wild: 990, bonus: 999 },
+      thresholds: { ten: 180, jack: 240, queen: 340, king: 400, ace: 450, wild: 470, bonus: 999 },
       multipliers: {},
     }
   ) {
@@ -92,7 +94,9 @@ export class RTPSimulator {
    * @returns       Complete RTP analysis
    */
   run(spins = 100_000, bet = 1.0, seed = 42): RTPResult {
-    const spinEngine = new SpinEngine(fastRng(seed), this.config.thresholds);
+    const spinEngine = this.config.reelStrips
+      ? new SpinEngine(fastRng(seed), undefined, this.config.reelStrips)
+      : new SpinEngine(fastRng(seed), this.config.thresholds);
 
     let totalWinnings = 0;
     let totalBets = 0;

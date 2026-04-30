@@ -118,12 +118,12 @@ describe('ProvablyFairRng', () => {
         for (let c = 0; c < cols; c++) {
           const val = rng();
           let sym = 'BONUS';
-          if (val < 450) sym = 'TEN';
-          else if (val < 550) sym = 'JACK';
-          else if (val < 750) sym = 'QUEEN';
-          else if (val < 880) sym = 'KING';
-          else if (val < 970) sym = 'ACE';
-          else if (val < 990) sym = 'WILD';
+          if (val < 180) sym = 'TEN';
+          else if (val < 240) sym = 'JACK';
+          else if (val < 340) sym = 'QUEEN';
+          else if (val < 400) sym = 'KING';
+          else if (val < 450) sym = 'ACE';
+          else if (val < 470) sym = 'WILD';
           row.push(sym);
         }
         grid.push(row);
@@ -155,12 +155,12 @@ describe('ProvablyFairRng', () => {
         for (let c = 0; c < cols; c++) {
           const val = rng();
           let sym = 'BONUS';
-          if (val < 450) sym = 'TEN';
-          else if (val < 550) sym = 'JACK';
-          else if (val < 750) sym = 'QUEEN';
-          else if (val < 880) sym = 'KING';
-          else if (val < 970) sym = 'ACE';
-          else if (val < 990) sym = 'WILD';
+          if (val < 180) sym = 'TEN';
+          else if (val < 240) sym = 'JACK';
+          else if (val < 340) sym = 'QUEEN';
+          else if (val < 400) sym = 'KING';
+          else if (val < 450) sym = 'ACE';
+          else if (val < 470) sym = 'WILD';
           row.push(sym);
         }
         grid.push(row);

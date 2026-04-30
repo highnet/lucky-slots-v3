@@ -10,15 +10,19 @@
  *   pnpm --filter @lucky-slots/engine update-strips
  */
 
-/** RNG threshold boundaries (0–999). A symbol is chosen when rng < its threshold. */
+/**
+ * RNG threshold boundaries (0–999).
+ * These match the sparse strip distribution used for high-volatility play:
+ * Ten=18%, Jack=6%, Queen=10%, King=6%, Ace=5%, Wild=2%, Bonus=53%.
+ */
 export const THRESHOLDS = {
-  ten: 450,
-  jack: 550,
-  queen: 750,
-  king: 880,
-  ace: 970,
-  wild: 990,
-  bonus: 999,
+  ten: 180,
+  jack: 240,
+  queen: 340,
+  king: 400,
+  ace: 450,
+  wild: 470,
+  bonus: 999
 } as const;
 
 /** Available bet amounts in ascending order. */
@@ -158,55 +162,55 @@ export const MULTIPLIERS: Record<string, number> = { ...HARDCODED_MULTIPLIERS };
 export const REEL_STRIPS: string[][] = [
   // Reel 1
   [
-    'JACK','TEN','TEN','QUEEN','KING','JACK','TEN','ACE','JACK','JACK',
-    'JACK','TEN','QUEEN','QUEEN','QUEEN','QUEEN','TEN','TEN','TEN','TEN',
-    'QUEEN','KING','JACK','TEN','TEN','QUEEN','TEN','TEN','KING','QUEEN',
-    'QUEEN','JACK','TEN','KING','TEN','QUEEN','TEN','KING','TEN','KING',
-    'QUEEN','TEN','TEN','TEN','TEN','TEN','ACE','ACE','TEN','QUEEN',
-    'QUEEN','ACE','KING','TEN','TEN','KING','QUEEN','KING','KING','TEN',
-    'TEN','TEN','ACE','ACE','WILD','QUEEN','KING','TEN','BONUS','TEN',
-    'TEN','ACE','TEN','QUEEN','ACE','TEN','TEN','QUEEN','QUEEN','TEN',
-    'QUEEN','TEN','TEN','TEN','KING','TEN','TEN','KING','WILD','TEN',
-    'TEN','JACK','JACK','ACE','TEN','TEN','TEN','QUEEN','JACK','TEN'
+    'BONUS','QUEEN','TEN','BONUS','BONUS','WILD','QUEEN','BONUS','BONUS','BONUS',
+    'BONUS','QUEEN','BONUS','BONUS','BONUS','BONUS','ACE','TEN','TEN','KING',
+    'BONUS','BONUS','BONUS','QUEEN','TEN','BONUS','TEN','TEN','BONUS','BONUS',
+    'BONUS','WILD','KING','BONUS','KING','BONUS','TEN','BONUS','ACE','BONUS',
+    'BONUS','TEN','QUEEN','JACK','ACE','TEN','BONUS','BONUS','TEN','BONUS',
+    'BONUS','BONUS','BONUS','QUEEN','TEN','BONUS','BONUS','BONUS','BONUS','JACK',
+    'JACK','KING','BONUS','BONUS','BONUS','BONUS','BONUS','TEN','BONUS','TEN',
+    'QUEEN','BONUS','QUEEN','BONUS','BONUS','ACE','TEN','BONUS','BONUS','ACE',
+    'BONUS','TEN','QUEEN','TEN','BONUS','JACK','KING','BONUS','BONUS','TEN',
+    'JACK','BONUS','BONUS','BONUS','JACK','KING','QUEEN','BONUS','BONUS','TEN'
   ],
   // Reel 2
   [
-    'QUEEN','KING','JACK','TEN','TEN','TEN','TEN','QUEEN','QUEEN','QUEEN',
-    'ACE','QUEEN','JACK','TEN','TEN','TEN','QUEEN','TEN','JACK','TEN',
-    'JACK','TEN','TEN','TEN','TEN','JACK','JACK','KING','TEN','QUEEN',
-    'TEN','QUEEN','KING','TEN','QUEEN','TEN','WILD','ACE','KING','TEN',
-    'TEN','QUEEN','KING','TEN','ACE','TEN','QUEEN','QUEEN','TEN','JACK',
-    'KING','QUEEN','KING','KING','TEN','KING','TEN','TEN','TEN','TEN',
-    'QUEEN','TEN','TEN','TEN','TEN','TEN','ACE','ACE','JACK','QUEEN',
-    'TEN','QUEEN','TEN','KING','JACK','ACE','BONUS','KING','TEN','KING',
-    'ACE','ACE','TEN','QUEEN','QUEEN','TEN','TEN','WILD','TEN','TEN',
-    'ACE','TEN','TEN','TEN','TEN','KING','QUEEN','JACK','QUEEN','TEN'
+    'BONUS','BONUS','BONUS','QUEEN','KING','JACK','JACK','BONUS','BONUS','BONUS',
+    'BONUS','BONUS','WILD','TEN','TEN','QUEEN','BONUS','TEN','BONUS','JACK',
+    'BONUS','TEN','TEN','TEN','QUEEN','WILD','BONUS','BONUS','QUEEN','BONUS',
+    'TEN','BONUS','BONUS','KING','BONUS','TEN','BONUS','BONUS','BONUS','KING',
+    'QUEEN','BONUS','BONUS','ACE','BONUS','JACK','BONUS','BONUS','QUEEN','BONUS',
+    'BONUS','BONUS','BONUS','BONUS','TEN','BONUS','JACK','TEN','TEN','KING',
+    'BONUS','KING','QUEEN','TEN','TEN','ACE','BONUS','BONUS','BONUS','BONUS',
+    'TEN','BONUS','TEN','BONUS','BONUS','BONUS','BONUS','BONUS','ACE','BONUS',
+    'BONUS','BONUS','QUEEN','BONUS','BONUS','QUEEN','ACE','BONUS','QUEEN','ACE',
+    'BONUS','JACK','TEN','TEN','KING','BONUS','BONUS','BONUS','BONUS','TEN'
   ],
   // Reel 3
   [
-    'TEN','ACE','KING','QUEEN','TEN','KING','TEN','TEN','TEN','TEN',
-    'QUEEN','TEN','QUEEN','QUEEN','TEN','QUEEN','TEN','TEN','TEN','TEN',
-    'TEN','ACE','QUEEN','TEN','JACK','ACE','KING','QUEEN','KING','TEN',
-    'TEN','JACK','TEN','WILD','QUEEN','KING','TEN','TEN','TEN','TEN',
-    'TEN','JACK','WILD','QUEEN','TEN','QUEEN','QUEEN','TEN','BONUS','TEN',
-    'JACK','JACK','KING','ACE','TEN','QUEEN','TEN','JACK','QUEEN','JACK',
-    'TEN','QUEEN','KING','JACK','KING','TEN','TEN','QUEEN','TEN','QUEEN',
-    'ACE','TEN','QUEEN','TEN','TEN','ACE','QUEEN','ACE','ACE','TEN',
-    'ACE','QUEEN','TEN','TEN','TEN','TEN','JACK','JACK','KING','KING',
-    'TEN','KING','KING','TEN','QUEEN','TEN','TEN','TEN','KING','TEN'
+    'JACK','BONUS','BONUS','BONUS','KING','BONUS','JACK','TEN','TEN','TEN',
+    'BONUS','ACE','BONUS','BONUS','QUEEN','BONUS','QUEEN','TEN','JACK','KING',
+    'JACK','BONUS','BONUS','TEN','BONUS','BONUS','BONUS','BONUS','BONUS','ACE',
+    'KING','BONUS','KING','BONUS','BONUS','BONUS','TEN','ACE','TEN','QUEEN',
+    'QUEEN','BONUS','BONUS','BONUS','TEN','BONUS','BONUS','JACK','BONUS','KING',
+    'BONUS','BONUS','BONUS','BONUS','TEN','BONUS','TEN','WILD','BONUS','BONUS',
+    'TEN','BONUS','BONUS','BONUS','BONUS','QUEEN','TEN','BONUS','KING','BONUS',
+    'BONUS','JACK','BONUS','TEN','TEN','BONUS','BONUS','BONUS','BONUS','QUEEN',
+    'BONUS','BONUS','QUEEN','ACE','QUEEN','QUEEN','WILD','BONUS','BONUS','BONUS',
+    'TEN','BONUS','BONUS','TEN','BONUS','ACE','TEN','QUEEN','BONUS','TEN'
   ],
   // Reel 4
   [
-    'QUEEN','QUEEN','TEN','QUEEN','JACK','QUEEN','KING','TEN','JACK','TEN',
-    'QUEEN','TEN','ACE','TEN','TEN','TEN','TEN','TEN','QUEEN','TEN',
-    'TEN','KING','KING','WILD','TEN','TEN','TEN','QUEEN','KING','TEN',
-    'KING','QUEEN','KING','JACK','TEN','QUEEN','TEN','QUEEN','TEN','KING',
-    'QUEEN','TEN','KING','QUEEN','QUEEN','QUEEN','QUEEN','ACE','JACK','TEN',
-    'TEN','JACK','TEN','TEN','TEN','TEN','KING','TEN','TEN','TEN',
-    'TEN','TEN','TEN','TEN','JACK','TEN','TEN','QUEEN','ACE','QUEEN',
-    'KING','ACE','TEN','ACE','JACK','ACE','QUEEN','TEN','KING','ACE',
-    'WILD','TEN','TEN','TEN','QUEEN','KING','JACK','TEN','TEN','TEN',
-    'TEN','JACK','JACK','TEN','KING','ACE','QUEEN','BONUS','ACE','TEN'
+    'BONUS','BONUS','JACK','BONUS','WILD','BONUS','BONUS','TEN','WILD','KING',
+    'BONUS','TEN','BONUS','ACE','TEN','TEN','ACE','JACK','BONUS','QUEEN',
+    'ACE','BONUS','BONUS','BONUS','ACE','JACK','TEN','BONUS','BONUS','TEN',
+    'BONUS','BONUS','BONUS','BONUS','KING','BONUS','TEN','BONUS','QUEEN','BONUS',
+    'BONUS','KING','BONUS','BONUS','BONUS','BONUS','BONUS','BONUS','BONUS','QUEEN',
+    'QUEEN','BONUS','ACE','JACK','TEN','TEN','BONUS','QUEEN','TEN','TEN',
+    'QUEEN','KING','TEN','QUEEN','BONUS','TEN','TEN','BONUS','BONUS','BONUS',
+    'BONUS','BONUS','QUEEN','BONUS','BONUS','BONUS','BONUS','KING','BONUS','BONUS',
+    'BONUS','JACK','QUEEN','TEN','BONUS','BONUS','BONUS','KING','QUEEN','JACK',
+    'TEN','BONUS','BONUS','TEN','BONUS','BONUS','BONUS','BONUS','BONUS','TEN'
   ]
 ];
 // </AUTO-GENERATED-REEL-STRIPS>

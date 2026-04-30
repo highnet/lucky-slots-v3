@@ -43,10 +43,26 @@ function defaultRng(): number {
 export class SpinEngine {
   private rng: RngFunction;
   private cdf: { threshold: number; symbol: Symbol }[];
+  private strips: string[][] | undefined;
+  private stringToSymbol: Record<string, Symbol>;
 
-  constructor(rng: RngFunction = defaultRng, thresholds?: Record<string, number>) {
+  constructor(
+    rng: RngFunction = defaultRng,
+    thresholds?: Record<string, number>,
+    strips?: string[][]
+  ) {
     this.rng = rng;
     this.cdf = buildCdf(thresholds ?? THRESHOLDS);
+    this.strips = strips;
+    this.stringToSymbol = {
+      TEN: Symbol.Ten,
+      JACK: Symbol.Jack,
+      QUEEN: Symbol.Queen,
+      KING: Symbol.King,
+      ACE: Symbol.Ace,
+      WILD: Symbol.Wild,
+      BONUS: Symbol.Bonus,
+    };
   }
 
   /** Map a single RNG value (0, 999) to a {@link Symbol} using the CDF. */
@@ -60,14 +76,41 @@ export class SpinEngine {
   /**
    * Generate a fresh N×M grid.
    *
+   * When {@link strips} was provided to the constructor the engine samples
+   * from physical reel strips (one RNG call per reel for the offset).
+   * Otherwise it falls back to the classic independent-cell threshold mode.
+   *
    * @returns 2D array where result[row][col] is the symbol at that cell.
    */
   generateRoll(): Symbol[][] {
+    if (this.strips) {
+      return this.generateRollFromStrips();
+    }
+    return this.generateRollFromThresholds();
+  }
+
+  private generateRollFromThresholds(): Symbol[][] {
     const symbols: Symbol[][] = [];
     for (let row = 0; row < NUM_ROWS; row++) {
       symbols[row] = [];
       for (let col = 0; col < NUM_REELS; col++) {
         symbols[row][col] = this.rngToSymbol(this.rng());
+      }
+    }
+    return symbols;
+  }
+
+  private generateRollFromStrips(): Symbol[][] {
+    const symbols: Symbol[][] = [];
+    for (let row = 0; row < NUM_ROWS; row++) {
+      symbols[row] = [];
+    }
+    for (let col = 0; col < NUM_REELS; col++) {
+      const strip = this.strips![col];
+      const offset = this.rng() % strip.length;
+      for (let row = 0; row < NUM_ROWS; row++) {
+        const idx = (offset + row) % strip.length;
+        symbols[row][col] = this.stringToSymbol[strip[idx]];
       }
     }
     return symbols;

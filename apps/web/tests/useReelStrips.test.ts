@@ -35,9 +35,9 @@ describe('getReelWindow', () => {
   it('uses default rowCount when not provided', () => {
     const longStrip = ['X', 'Y', 'Z', 'W', 'V', 'U', 'T', 'S'];
     const window = getReelWindow(0, 0, [longStrip]);
-    // Default rowCount is GRID_CONFIG.rows which is 6
-    expect(window).toHaveLength(6);
-    expect(window).toEqual(['X', 'Y', 'Z', 'W', 'V', 'U']);
+    // Default rowCount is GRID_CONFIG.rows which is 4
+    expect(window).toHaveLength(4);
+    expect(window).toEqual(['X', 'Y', 'Z', 'W']);
   });
 
   it('returns TEN fallback when strip is missing', () => {

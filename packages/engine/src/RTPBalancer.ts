@@ -66,17 +66,21 @@ export class RTPBalancer {
   /**
    * Run the reverse Monte Carlo optimizer.
    *
-   * @param targetRTP    Desired RTP percentage (e.g. 49 for 49%)
-   * @param tolerance    Acceptable error margin (default 1.0 = ±1%)
-   * @param maxIters     Maximum descent iterations (default 100)
-   * @param gridConfig   Optional override for rows/cols/minMatch
-   * @returns            Final balanced configuration + convergence report
+   * @param targetRTP      Desired RTP percentage (e.g. 96 for 96%)
+   * @param tolerance      Acceptable RTP error margin (default 1.0 = ±1%)
+   * @param maxIters       Maximum descent iterations (default 100)
+   * @param gridConfig     Optional override for rows/cols/minMatch
+   * @param targetHitRate  Optional target hit-rate (0–1). When provided the
+   *                       optimizer prefers threshold moves that reduce hit-rate
+   *                       instead of slashing multipliers.
+   * @returns              Final balanced configuration + convergence report
    */
   static balance(
     targetRTP: number,
     tolerance = 1.0,
     maxIters = 100,
-    gridConfig?: { rows: number; cols: number; minMatch: number; paylineSymbols: number }
+    gridConfig?: { rows: number; cols: number; minMatch: number; paylineSymbols: number },
+    targetHitRate?: number
   ): BalancerResult {
     const log: string[] = [];
 
@@ -86,21 +90,21 @@ export class RTPBalancer {
     const paylineSymbols = gridConfig?.paylineSymbols ?? 5;
 
     let thresholds: ThresholdConfig = {
-      ten: 450, jack: 550, queen: 750, king: 880, ace: 970, wild: 990, bonus: 999,
+      ten: 180, jack: 240, queen: 340, king: 400, ace: 450, wild: 470, bonus: 999,
     };
 
     // Start with a deep copy of defaults
-    const multipliers: Record<string, number> = { ...DEFAULT_MULTIPLIERS };
+    const baseMultipliers: Record<string, number> = { ...DEFAULT_MULTIPLIERS };
 
     // Filter multipliers to only sizes valid for current grid
-    const validKeys = Object.keys(multipliers).filter((k) => {
+    const validKeys = Object.keys(baseMultipliers).filter((k) => {
       const size = parseInt(k.split(' ')[0], 10);
       return size >= minMatch && size <= cols;
     });
     const activeMultipliers: Record<string, number> = {};
-    for (const k of validKeys) activeMultipliers[k] = multipliers[k];
+    for (const k of validKeys) activeMultipliers[k] = baseMultipliers[k];
 
-    function simulate(seed: number): number {
+    function simulate(seed: number): { rtp: number; hitRate: number } {
       const sim = new RTPSimulator({
         rows,
         cols,
@@ -109,20 +113,33 @@ export class RTPBalancer {
         thresholds: { ...thresholds },
         multipliers: { ...activeMultipliers },
       });
-      return sim.quickEstimate(seed);
+      const result = sim.run(10_000, 1.0, seed);
+      return { rtp: result.rtp, hitRate: result.hitFrequency };
     }
 
-    let bestRTP = simulate(42);
-    log.push(`Start  RTP=${bestRTP.toFixed(2)}%  target=${targetRTP.toFixed(1)}%`);
+    function loss(rtp: number, hitRate: number): number {
+      const rtpErr = Math.abs(rtp - targetRTP);
+      const hitErr = targetHitRate !== undefined ? Math.abs(hitRate - targetHitRate) * 100 : 0;
+      return rtpErr + hitErr;
+    }
+
+    let bestSim = simulate(42);
+    let bestLoss = loss(bestSim.rtp, bestSim.hitRate);
+    log.push(
+      `Start  RTP=${bestSim.rtp.toFixed(2)}%  hitRate=${(bestSim.hitRate * 100).toFixed(2)}%  ` +
+        `targetRTP=${targetRTP.toFixed(1)}%  ${targetHitRate !== undefined ? `targetHit=${(targetHitRate * 100).toFixed(1)}%` : ''}`
+    );
 
     let converged = false;
     let iter = 0;
 
     for (; iter < maxIters; iter++) {
-      if (Math.abs(bestRTP - targetRTP) <= tolerance) {
-        converged = true;
-        log.push(`CONVERGED in ${iter} iterations`);
-        break;
+      if (Math.abs(bestSim.rtp - targetRTP) <= tolerance) {
+        if (targetHitRate === undefined || Math.abs(bestSim.hitRate - targetHitRate) <= 0.02) {
+          converged = true;
+          log.push(`CONVERGED in ${iter} iterations`);
+          break;
+        }
       }
 
       // Generate candidate perturbations
@@ -139,61 +156,81 @@ export class RTPBalancer {
       for (const key of Object.keys(activeMultipliers)) {
         const current = activeMultipliers[key];
         candidates.push({ type: 'multiplier', key, delta: current * 0.2, desc: `${key} mult ↑` });
-        candidates.push({ type: 'multiplier', key, delta: -current * 0.2, desc: `${key} mult ↓` });
+        // Strongly discourage multiplier reductions by only adding them when
+        // no hit-rate target is set. When a hit-rate target exists we rely on
+        // threshold changes to do the heavy lifting.
+        if (targetHitRate === undefined) {
+          candidates.push({ type: 'multiplier', key, delta: -current * 0.2, desc: `${key} mult ↓` });
+        }
       }
 
-      // Shuffle candidates to avoid bias toward early parameters
-      for (let i = candidates.length - 1; i > 0; i--) {
+      // Threshold candidates are tried first (they control hit-rate)
+      const thresholdCands = candidates.filter((c) => c.type === 'threshold');
+      const multCands = candidates.filter((c) => c.type === 'multiplier');
+
+      // Shuffle within each group to avoid bias
+      for (let i = thresholdCands.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
-        [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+        [thresholdCands[i], thresholdCands[j]] = [thresholdCands[j], thresholdCands[i]];
       }
+      for (let i = multCands.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [multCands[i], multCands[j]] = [multCands[j], multCands[i]];
+      }
+
+      // Try thresholds first, then multipliers as fallback
+      const orderedCandidates = [...thresholdCands, ...multCands];
 
       let improved = false;
 
-      for (const cand of candidates) {
-        let testRTP: number;
+      for (const cand of orderedCandidates) {
+        let testSim: { rtp: number; hitRate: number };
+        const prevThresholds = cloneThresholds(thresholds);
+        const prevMult = { ...activeMultipliers };
 
         if (cand.type === 'threshold') {
           const next = cloneThresholds(thresholds);
           (next as unknown as Record<string, number>)[cand.key] += cand.delta;
           if (!thresholdsValid(next)) continue;
-          const prev = cloneThresholds(thresholds);
           thresholds = next;
-          testRTP = simulate(1000 + iter);
-          if (!isFinite(testRTP)) {
-            thresholds = prev;
+          testSim = simulate(1000 + iter);
+          if (!isFinite(testSim.rtp)) {
+            thresholds = prevThresholds;
             continue;
           }
         } else {
           const nextMult = { ...activeMultipliers };
           const newVal = nextMult[cand.key] + cand.delta;
           if (newVal < 0.01) continue;
+          // Penalise multiplier reductions when a hit-rate target exists
+          if (targetHitRate !== undefined && cand.delta < 0 && newVal < baseMultipliers[cand.key] * 0.8) {
+            continue; // refuse to slash multipliers too far
+          }
           nextMult[cand.key] = newVal;
-          const oldVal = activeMultipliers[cand.key];
           activeMultipliers[cand.key] = newVal;
-          testRTP = simulate(1000 + iter);
-          if (!isFinite(testRTP) || testRTP < 0) {
-            activeMultipliers[cand.key] = oldVal;
+          testSim = simulate(1000 + iter);
+          if (!isFinite(testSim.rtp) || testSim.rtp < 0) {
+            activeMultipliers[cand.key] = prevMult[cand.key];
             continue;
           }
         }
 
-        const distBefore = Math.abs(bestRTP - targetRTP);
-        const distAfter = Math.abs(testRTP - targetRTP);
+        const testLoss = loss(testSim.rtp, testSim.hitRate);
 
-        if (distAfter < distBefore) {
-          bestRTP = testRTP;
+        if (testLoss < bestLoss) {
+          bestSim = testSim;
+          bestLoss = testLoss;
           log.push(
-            `Iter ${iter + 1}:  RTP=${bestRTP.toFixed(2)}%  |  ${cand.desc}  |  dist=${distAfter.toFixed(2)}%`
+            `Iter ${iter + 1}:  RTP=${bestSim.rtp.toFixed(2)}%  hitRate=${(bestSim.hitRate * 100).toFixed(2)}%  |  ${cand.desc}  |  loss=${testLoss.toFixed(2)}`
           );
           improved = true;
           break; // commit this change and start next iteration
         } else {
           // rollback
           if (cand.type === 'threshold') {
-            (thresholds as unknown as Record<string, number>)[cand.key] -= cand.delta;
+            thresholds = prevThresholds;
           } else {
-            activeMultipliers[cand.key] -= cand.delta;
+            activeMultipliers[cand.key] = prevMult[cand.key];
           }
         }
       }
@@ -205,13 +242,13 @@ export class RTPBalancer {
     }
 
     if (!converged && iter >= maxIters) {
-      log.push(`REACHED MAX ITERATIONS (${maxIters}). Final RTP=${bestRTP.toFixed(2)}%`);
+      log.push(`REACHED MAX ITERATIONS (${maxIters}). Final RTP=${bestSim.rtp.toFixed(2)}%`);
     }
 
     return {
       converged,
       iterations: iter,
-      finalRTP: bestRTP,
+      finalRTP: bestSim.rtp,
       targetRTP,
       tolerance,
       thresholds: { ...thresholds },

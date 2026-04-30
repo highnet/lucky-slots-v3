@@ -1,21 +1,20 @@
 import { GRID_CONFIG } from '../src/config';
 
-// Exact counts matching RNG thresholds (out of 100 symbols):
-// Ten=45% (450/999), Jack=10% (100/999), Queen=20% (200/999),
-// King=13% (130/999), Ace=9% (90/999), Wild=2% (20/999), Bonus=1% (9/999)
+// Sparse distribution for high-volatility gameplay.
+// Bonus acts as a non-winning stop (no payline matches).
 interface StripConfig {
   symbol: string;
   count: number;
 }
 
 const DISTRIBUTION: StripConfig[] = [
-  { symbol: 'TEN', count: 45 },
-  { symbol: 'JACK', count: 10 },
-  { symbol: 'QUEEN', count: 20 },
-  { symbol: 'KING', count: 13 },
-  { symbol: 'ACE', count: 9 },
+  { symbol: 'TEN', count: 18 },
+  { symbol: 'JACK', count: 6 },
+  { symbol: 'QUEEN', count: 10 },
+  { symbol: 'KING', count: 6 },
+  { symbol: 'ACE', count: 5 },
   { symbol: 'WILD', count: 2 },
-  { symbol: 'BONUS', count: 1 },
+  { symbol: 'BONUS', count: 53 },
 ];
 
 function seededRandom(seed: number): () => number {

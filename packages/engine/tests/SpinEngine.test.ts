@@ -28,7 +28,7 @@ describe('SpinEngine', () => {
   });
 
   it('replaces wilds correctly', () => {
-    const wildEngine = new SpinEngine(() => 980); // Always Wild
+    const wildEngine = new SpinEngine(() => 460); // Always Wild (450-469 range)
     const result = wildEngine.spin();
     expect(result.symbols.every((row) => row.every((s) => s === Symbol.Wild))).toBe(true);
 

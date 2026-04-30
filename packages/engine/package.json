@@ -9,7 +9,8 @@
     "lint": "eslint .",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "update-strips": "tsx scripts/updateStrips.ts"
+    "update-strips": "tsx scripts/updateStrips.ts",
+    "optimize-strips": "tsx scripts/optimizeStrips.ts"
   },
   "devDependencies": {
     "@lucky-slots/ts-config": "workspace:*",

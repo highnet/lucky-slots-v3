@@ -79,8 +79,8 @@ describe('PayoutEngine', () => {
 
     const acePaths = result.winningPaths.filter((p) => p.size === NUM_REELS && p.symbol === Symbol.Ace);
     const expected = getMultiplier(NUM_REELS, 'Ace') * acePaths.length;
-    expect(result.multiplier).toBe(expected);
-    expect(result.winnings).toBe(result.multiplier * 2.0);
+    expect(result.multiplier).toBeCloseTo(expected, 10);
+    expect(result.winnings).toBeCloseTo(result.multiplier * 2.0, 10);
   });
 
   it('calculates bet * multiplier correctly', () => {
@@ -92,8 +92,8 @@ describe('PayoutEngine', () => {
 
     const queenPaths = result.winningPaths.filter((p) => p.size === NUM_REELS && p.symbol === Symbol.Queen);
     const expected = getMultiplier(NUM_REELS, 'Queen') * queenPaths.length;
-    expect(result.multiplier).toBe(expected);
-    expect(result.winnings).toBe(expected * 10.0);
+    expect(result.multiplier).toBeCloseTo(expected, 10);
+    expect(result.winnings).toBeCloseTo(expected * 10.0, 10);
   });
 
   it('wilds greedily match the highest symbol first', () => {

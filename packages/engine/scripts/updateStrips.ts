@@ -25,13 +25,13 @@ const CONFIG_PATH = resolve(__dirname, '../src/config.ts');
 const CONSTANTS_PATH = resolve(__dirname, '../src/constants.ts');
 
 const DISTRIBUTION = [
-  { symbol: 'TEN', count: 45 },
-  { symbol: 'JACK', count: 10 },
-  { symbol: 'QUEEN', count: 20 },
-  { symbol: 'KING', count: 13 },
-  { symbol: 'ACE', count: 9 },
+  { symbol: 'TEN', count: 18 },
+  { symbol: 'JACK', count: 6 },
+  { symbol: 'QUEEN', count: 10 },
+  { symbol: 'KING', count: 6 },
+  { symbol: 'ACE', count: 5 },
   { symbol: 'WILD', count: 2 },
-  { symbol: 'BONUS', count: 1 },
+  { symbol: 'BONUS', count: 53 },
 ];
 
 /** Parse config.ts as raw text — never cached, always current. */

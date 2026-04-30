@@ -99,6 +99,10 @@ export function generateSeed(): string {
 /**
  * Re-run a spin with stored parameters and compare the resulting grid.
  *
+ * When `strips` is provided the verifier uses strip-based offsets
+ * (one RNG call per reel), otherwise it falls back to the legacy
+ * independent-cell threshold mode.
+ *
  * @returns `true` if the recomputed grid exactly matches the original.
  */
 export function verifySpin(
@@ -107,17 +111,35 @@ export function verifySpin(
   nonce: number,
   rows: number,
   cols: number,
-  originalSymbols: string[][]
+  originalSymbols: string[][],
+  strips?: string[][]
 ): boolean {
   const rng = makeProvablyFairRng(serverSeed, clientSeed, nonce);
-  // Reproduce the same symbol generation logic as SpinEngine
+
+  if (strips) {
+    for (let col = 0; col < cols; col++) {
+      const strip = strips[col];
+      const offset = rng() % strip.length;
+      for (let row = 0; row < rows; row++) {
+        const idx = (offset + row) % strip.length;
+        const recomputed = strip[idx];
+        const original = originalSymbols[row]?.[col];
+        if (recomputed !== original) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  // Legacy threshold-based verification (matches sparse strip distribution)
   const THRESHOLDS = [
-    { threshold: 450, name: 'Ten' },
-    { threshold: 550, name: 'Jack' },
-    { threshold: 750, name: 'Queen' },
-    { threshold: 880, name: 'King' },
-    { threshold: 970, name: 'Ace' },
-    { threshold: 990, name: 'Wild' },
+    { threshold: 180, name: 'Ten' },
+    { threshold: 240, name: 'Jack' },
+    { threshold: 340, name: 'Queen' },
+    { threshold: 400, name: 'King' },
+    { threshold: 450, name: 'Ace' },
+    { threshold: 470, name: 'Wild' },
     { threshold: 999, name: 'Bonus' },
   ];
 
