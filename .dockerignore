@@ -1,0 +1,14 @@
+node_modules
+dist
+.output
+.nuxt
+.turbo
+*.log
+.env
+.env.local
+docker-compose.yml
+Dockerfile*
+fly*.toml
+.github
+.vscode
+.idea

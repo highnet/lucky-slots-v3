@@ -98,6 +98,23 @@ pnpm lint && pnpm typecheck && pnpm build
 
 ESLint already ignores: `dist/`, `.output/`, `.nuxt/`, `node_modules/`, `pnpm-lock.yaml`, `drizzle/`.
 
+## Fly.io Deployment
+
+The repo includes everything needed to deploy both apps to Fly.io:
+
+- `fly.api.toml` — API app configuration
+- `fly.web.toml` — Web app configuration
+- `apps/api/Dockerfile` — API container (runs via `tsx`)
+- `apps/web/Dockerfile` — Web container (Nuxt 3 Nitro build)
+- `scripts/deploy-fly.sh` — One-command deploy script
+- `DEPLOY.md` — Step-by-step deployment guide
+
+**Key env vars on Fly.io:**
+- API: `DATABASE_URL` (auto-set by `fly postgres attach`), `REDIS_URL`, `WEB_URL`
+- Web: `NUXT_PUBLIC_API_URL`
+
+The API CORS origin and session cookie `SameSite` attribute are automatically adjusted for production vs local development.
+
 ## Architecture at a Glance
 
 ```

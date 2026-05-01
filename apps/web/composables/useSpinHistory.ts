@@ -7,16 +7,14 @@
  * array suitable for the `SpinHistory` UI component.
  */
 
-/** GraphQL endpoint shared across all composables. */
-const API_URL = 'http://localhost:4000/graphql';
-
 /**
  * Generic GraphQL POST helper with credentials included.
  *
  * @throws Error when the GraphQL response contains errors
  */
 async function graphqlRequest<T>(query: string, variables?: Record<string, unknown>): Promise<T> {
-  const res = await fetch(API_URL, {
+  const { public: { apiUrl } } = useRuntimeConfig();
+  const res = await fetch(apiUrl as string, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',

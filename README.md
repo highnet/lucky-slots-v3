@@ -226,15 +226,21 @@ The optimizer will:
 ```
 lucky-slots-web/
 ├── apps/
-│   ├── web/          # Nuxt 3 frontend (port 3000)
-│   └── api/          # GraphQL API server (port 4000)
+│   ├── web/              # Nuxt 3 frontend (port 3000)
+│   │   └── Dockerfile    # Production container for Fly.io
+│   └── api/              # GraphQL API server (port 4000)
+│       └── Dockerfile    # Production container for Fly.io
 ├── packages/
-│   ├── engine/       # Core slot logic + provably fair + RTP + optimizer
-│   ├── state-machine/# XState game machine
-│   └── ts-config/    # Shared TypeScript configs
+│   ├── engine/           # Core slot logic + provably fair + RTP + optimizer
+│   ├── state-machine/    # XState game machine
+│   └── ts-config/        # Shared TypeScript configs
 ├── scripts/
-│   └── slots-cli.ts  # Interactive TUI for engine management
-├── eslint.config.mjs # Root ESLint flat config
+│   ├── slots-cli.ts      # Interactive TUI for engine management
+│   └── deploy-fly.sh     # One-command Fly.io deploy script
+├── fly.api.toml          # Fly.io API app config
+├── fly.web.toml          # Fly.io Web app config
+├── DEPLOY.md             # Step-by-step Fly.io deployment guide
+├── eslint.config.mjs     # Root ESLint flat config
 ├── docker-compose.yml
 ├── turbo.json
 └── pnpm-workspace.yaml
@@ -408,7 +414,32 @@ type SpinResult {
 
 ---
 
-## Docker Compose
+## Deploy to Fly.io
+
+A complete step-by-step guide lives in [`DEPLOY.md`](./DEPLOY.md). Quick summary:
+
+```bash
+# 1. Create apps and provision infrastructure
+fly apps create lucky-slots-api
+fly apps create lucky-slots-web
+fly postgres create --name lucky-slots-db
+fly postgres attach lucky-slots-db -a lucky-slots-api
+fly redis create --name lucky-slots-redis
+
+# 2. Set secrets (use the redis:// private URL from `fly redis status`)
+fly secrets set REDIS_URL="redis://..." --app lucky-slots-api
+fly secrets set WEB_URL="https://lucky-slots-web.fly.dev" --app lucky-slots-api
+
+# 3. Deploy API, push schema, then deploy web
+fly deploy --config fly.api.toml
+fly ssh console --app lucky-slots-api --pty
+#   → sh -c 'cd apps/api && npx drizzle-kit push:pg'
+fly deploy --config fly.web.toml
+```
+
+> **Heads up:** The first deploy has several footguns (Postgres attach syntax, `rediss://` vs `redis://`, schema push order, stale machines after secret updates). Read [`DEPLOY.md`](./DEPLOY.md) carefully — it includes a **"What We Learned"** section that documents every failure mode we hit during the first real deploy.
+
+## Docker Compose (Local)
 
 ```bash
 # Full stack (web + api + postgres + redis)

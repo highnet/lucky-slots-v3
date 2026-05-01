@@ -35,15 +35,17 @@ import { generateSeed } from '@lucky-slots/engine';
  * Passing `null` clears the cookie (used during logout).
  */
 function setCookie(res: { setHeader(name: string, value: string): void }, sessionId: string | null) {
+  const isProduction = process.env.NODE_ENV === 'production';
+  const sameSite = isProduction ? 'None' : 'Strict';
   if (sessionId) {
     res.setHeader(
       'Set-Cookie',
-      `sessionId=${sessionId}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=604800`
+      `sessionId=${sessionId}; HttpOnly; Secure; SameSite=${sameSite}; Path=/; Max-Age=604800`
     );
   } else {
     res.setHeader(
       'Set-Cookie',
-      'sessionId=; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=0'
+      `sessionId=; HttpOnly; Secure; SameSite=${sameSite}; Path=/; Max-Age=0`
     );
   }
 }

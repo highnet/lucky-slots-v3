@@ -1,7 +1,6 @@
-const API_URL = 'http://localhost:4000/graphql';
-
 async function graphqlRequest<T>(query: string, variables?: Record<string, unknown>): Promise<T> {
-  const res = await fetch(API_URL, {
+  const { public: { apiUrl } } = useRuntimeConfig();
+  const res = await fetch(apiUrl as string, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',

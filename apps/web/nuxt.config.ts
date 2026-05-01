@@ -20,6 +20,11 @@ const config: NuxtConfig = {
   components: [
     { path: '~/components', pathPrefix: false },
   ],
+  runtimeConfig: {
+    public: {
+      apiUrl: process.env.NUXT_PUBLIC_API_URL || 'http://localhost:4000/graphql',
+    },
+  },
   typescript: {
     tsConfig: {
       extends: '@lucky-slots/ts-config/nuxt.json',

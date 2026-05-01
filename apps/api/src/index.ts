@@ -48,6 +48,11 @@ const schema = createSchema(mergeResolvers(authResolvers, spinResolvers));
 
 const yoga = createYoga({
   schema,
+  cors: {
+    origin: process.env.WEB_URL || 'http://localhost:3000',
+    credentials: true,
+    methods: ['POST', 'GET', 'OPTIONS'],
+  },
   context: async ({ request, res }: { request: Request; res: unknown }) => {
     const cookie = request.headers.get('cookie') || '';
     const sessionId = cookie
